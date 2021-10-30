@@ -84,6 +84,7 @@ struct DebugTable {
   enum Found { TrueNegative, TruePositive, FalsePositive };
   Found AdaptiveFind(const Z& key, uint64_t code) {
     auto hash = hash_maker_(code) & (data_.size() - 1);
+    //cout << hex << print_makers_(code) << endl;
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 4; ++j) {
         if (not data_[hash][j].full) continue;
@@ -92,9 +93,12 @@ struct DebugTable {
           continue;
         }
         if (key == data_[hash][j].back) return TruePositive;
+        //cout << "fp " << j << " " << data_[hash][j].fingerprint << endl;
         int k = j;
         while (k == j) k = rand() % 4;
+        //cout << "swap " << k << " " << data_[hash][j].back << " " << data_[hash][k].back << endl;
         using std::swap;
+        swap(data_[hash][j].full, data_[hash][k].full);
         swap(data_[hash][j].back, data_[hash][k].back);
         swap(data_[hash][j].code, data_[hash][k].code);
         for (auto n : {j, k}) {

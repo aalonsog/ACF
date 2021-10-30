@@ -93,7 +93,7 @@ struct Rainbow {
       for (uint64_t index :
            {hash_maker(keys[i].code) & mask,
             (hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask}) {
-        table[fingerprinter(keys[i].key) & ((1ul << (4 * W % 64)) - 1)][index].insert(i);
+        table[fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1)][index].insert(i);
       }
     }
   }
@@ -144,22 +144,22 @@ int main() {
   z.a = (static_cast<unsigned __int128>(aa[14]) << 64) | aa[15];
 
   // cout << w.m[0] << endl;
-  if (0) {
-    vector<KeyCode<string>> v;
-    string s;
-    while (cin >> s) v.push_back(KeyCode<string>{s, w(hash<string>()(s))});
-    Rainbow<string, 16> r(0, v, x, y, [z](const string& s) { return z(hash<string>()(s)); });
-    auto e = r.Extract();
-    for (auto& t : e) {
-      cout << v[t].key << endl;
-    }
-  }
+  // if (0) {
+  //   vector<KeyCode<string>> v;
+  //   string s;
+  //   while (cin >> s) v.push_back(KeyCode<string>{s, w(hash<string>()(s))});
+  //   Rainbow<string, 16> r(0, v, x, y, [z](const string& s) { return z(hash<string>()(s)); });
+  //   auto e = r.Extract();
+  //   for (auto& t : e) {
+  //     cout << v[t].key << endl;
+  //   }
+  // }
 
   //  if (0)
   {
     constexpr auto kRepeats = 100;
     constexpr auto kPopulation = 1;
-    constexpr auto kMaxUniverse = 14;
+    constexpr auto kMaxUniverse = 846200;
     constexpr auto kTagBits = 4;
     DebugTable<uint32_t, kTagBits> dt(2 * kPopulation, x, y, z);
     for (uint32_t i = 0; i < kPopulation; ++i) {
@@ -168,7 +168,7 @@ int main() {
 
     vector<KeyCode<uint32_t>> v;
     for (uint64_t i = 0; i < kMaxUniverse; ++i) {
-      if (0 == (i & (i-1))) cerr << i << endl;
+      if (0 == (i & (i - 1))) cerr << i << endl;
       bool found = true;
       for (int j = 0; j < kRepeats; ++j) {
         if (DebugTable<uint32_t, kTagBits>::TrueNegative == dt.AdaptiveFind(i, w(i))) {
@@ -177,6 +177,7 @@ int main() {
         }
       }
       if (found) {
+        //cout << hex << (z(w(i)) & 0xffff) << endl;
         // cerr << "found " << i << endl;
         //assert(i < kPopulation);
         v.push_back(KeyCode<uint32_t>{static_cast<uint32_t>(i), w(i)});
