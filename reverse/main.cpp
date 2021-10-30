@@ -159,7 +159,7 @@ int main() {
   {
     constexpr auto kRepeats = 100;
     constexpr auto kPopulation = 1;
-    constexpr auto kMaxUniverse = 846200;
+    constexpr auto kMaxUniverse = 8462000;
     constexpr auto kTagBits = 4;
     DebugTable<uint32_t, kTagBits> dt(2 * kPopulation, x, y, z);
     for (uint32_t i = 0; i < kPopulation; ++i) {
