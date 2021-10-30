@@ -35,7 +35,7 @@ class HTmap {
   HTmap(int way, int buckets, int hsize, int t);
   virtual ~HTmap();
   void clear();
-  void expand();
+
   bool insert(key_type key, value_type value);
   bool direct_insert(key_type key, value_type value, int i, int ii);
   void stat();

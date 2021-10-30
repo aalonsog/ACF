@@ -107,6 +107,7 @@ int run() {
     for (int64_t i = 0; i < tot_i; i++) {
       // int64_t key= rand();
       // unsigned int key= (rand()*2^16)+rand();
+      // jbapple: generate a random true positive and insert it into S_map.
       unsigned int key = (unsigned int)dis(gen);
       if (S_map.count(key) > 0) {
         i--;
@@ -168,6 +169,8 @@ int run() {
     */
     // create A set
     for (int64_t i = 0; i < A; i++) {
+      // jbapple: generate a random key and insert it into A_ar and A_map if and only if
+      // it is a unique non-member of S_map.
       unsigned int key = (unsigned int)dis(gen);
       if ((A_map.count(key) > 0) || (S_map.count(key) > 0)) {
         i--;
@@ -201,6 +204,7 @@ int run() {
       // ACF query
       count++;
       tot_count++;
+      // jbapple: flagFF is true if this key, which is really absent, is a false positive
       bool flagFF = false;
       int false_i = -1;
       int false_ii = -1;
@@ -223,6 +227,7 @@ int run() {
         sample_FF_FP++;
       }
 
+      // jbapple: adaptivity is here
       // SWAP
       if (flagFF) {
         num_swap++;
