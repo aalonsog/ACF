@@ -1,6 +1,7 @@
 // Performs key inference on an adaptive cuckoo filter
 
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -64,8 +65,8 @@ using namespace std;
 
 template <typename T>
 struct KeyCode {
-  T key;
-  uint64_t code;
+  T key = T();
+  uint64_t code = -1ul;
 };
 
 // Rainbow is a table structure to organize input keys by their fingerprint values, then
@@ -124,6 +125,17 @@ struct Rainbow {
   }
 };
 
+string itoa(uint32_t i) {
+  if (0 == i) return "0";
+  string result;
+  while (i) {
+    result += ((i % 10) + '0');
+    i = i / 10;
+  }
+  reverse(result.begin(), result.end());
+  return result;
+}
+
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main() {
@@ -164,41 +176,41 @@ int main() {
     for (uint64_t kPopulation = 2; kPopulation <= 770; ++kPopulation) {
       uint64_t kMaxUniverse = 1 << 20; // 18544 << 0;
       constexpr auto kTagBits = 4;
-      DebugTable<uint32_t, kTagBits> dt(
+      DebugTable<string, kTagBits> dt(
           1ul << static_cast<int>(ceil(log2(1.15 * kPopulation))), x, y, z);
       for (uint32_t i = 0; i < kPopulation; ++i) {
-        dt.Insert(i, w(i));
+        dt.Insert(itoa(i), w(i));
       }
 
-      vector<KeyCode<uint32_t>> v;
+      vector<KeyCode<string>> v;
       for (uint64_t i = 0; i < kMaxUniverse; ++i) {
         //if (0 == (i & (i - 1))) cerr << i << " " << v.size() << endl;
 
-        auto finder = dt.AdaptiveFind(i, w(i));
-        if (finder != DebugTable<uint32_t, kTagBits>::TrueNegative) {
+        auto finder = dt.AdaptiveFind(itoa(i), w(i));
+        if (finder != DebugTable<string, kTagBits>::TrueNegative) {
           bool found = true;
-          if (finder == DebugTable<uint32_t, kTagBits>::FalsePositive) {
+          if (finder == DebugTable<string, kTagBits>::FalsePositive) {
             for (int j = 0; j < kRepeats; ++j) {
-              if (DebugTable<uint32_t, kTagBits>::TrueNegative ==
-                  dt.AdaptiveFind(i, w(i))) {
+              if (DebugTable<string, kTagBits>::TrueNegative ==
+                  dt.AdaptiveFind(itoa(i), w(i))) {
                 found = false;
                 break;
               }
             }
           }
-          if (found) v.push_back(KeyCode<uint32_t>{static_cast<uint32_t>(i), w(i)});
+          if (found) v.push_back(KeyCode<string>{itoa(i), w(i)});
         }
       }
       // assert(v.size() == kPopulation && "v.size == kPopulation");
 
-      Rainbow<uint32_t, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+      Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
       auto e = r.Extract();
       cout << "v.size()    " << v.size() << endl;
       cout << "kPopulation " << kPopulation << endl;
       cout << "e.size()    " << e.size() << endl;
       assert(e.size() <= kPopulation);
       //assert(e.size() >= kPopulation);
-      vector<uint32_t> f(e.begin(), e.end());
+      vector<uint64_t> f(e.begin(), e.end());
       sort(f.begin(), f.end());
 
       for (auto& t : f) {
@@ -206,7 +218,7 @@ int main() {
       }
       for (uint64_t i = 0; i < f.size(); ++i) {
         // assert(i < f.size());
-        assert(v[f[i]].key >= i);
+        assert(atoi(v[f[i]].key.c_str()) >= i);
       }
     }
   }
