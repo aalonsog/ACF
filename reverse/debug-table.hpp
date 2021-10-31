@@ -68,6 +68,7 @@ struct DebugTable {
       for (int j = 0; j < 4; ++j) {
         if (data_[hash][j].full) continue;
         data_[hash][j].back = key;
+        data_[hash][j].code = code;
         data_[hash][j].fingerprint = print_makers_(code) >> (j * W);
         data_[hash][j].full = true;
         return;

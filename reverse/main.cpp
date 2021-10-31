@@ -103,7 +103,7 @@ struct Rainbow {
     for (auto& bucket : table) {
       for (auto& index_map : bucket.second) {
         if (index_map.second.size() > 1) {
-          cerr << "unrecoverable\n";
+          // cerr << "unrecoverable\n";
           continue;
         }
         auto ki = *index_map.second.begin();
@@ -112,7 +112,7 @@ struct Rainbow {
              {hash_maker(keys[ki].code) & mask,
               (hash_maker(keys[ki].code) ^ xor_maker(keys[ki].code)) & mask}) {
           if (bucket.second.find(index)->second.size() > 1) {
-            cerr << "unrecoverable\n";
+            // cerr << "unrecoverable\n";
             unique = false;
             break;
           }
@@ -129,20 +129,22 @@ struct Rainbow {
 int main() {
   auto w = MS64::FromDevice(), x = MS64::FromDevice(), y = MS64::FromDevice(),
        z = MS64::FromDevice();
-  uint64_t aa[16] = {
-      0x5e1a75e3d05242b5, 0xe3474a91193544da, 0xbedf0f3064fd4f74, 0x38588d84069f4bb9,
-      0x7deb04d287ab49b7, 0xec734743a4c84a15, 0x096dadf136c74bad, 0x94fbb085d0f245b1,
-      0xa9cfc872640f4743, 0x50871f18f028408d, 0x3fffa4125d334bb0, 0x8a6748239a2a48ab,
-      0x21fb2e9b7c3340b0, 0x95b94d1f03f84a3a, 0x175bd55ef7764f54, 0x1e4328f8e88a4428};
-  w.m = (static_cast<unsigned __int128>(aa[0]) << 64) | aa[1];
-  x.m = (static_cast<unsigned __int128>(aa[2]) << 64) | aa[3];
-  y.m = (static_cast<unsigned __int128>(aa[4]) << 64) | aa[5];
-  z.m = (static_cast<unsigned __int128>(aa[6]) << 64) | aa[7];
-  w.a = (static_cast<unsigned __int128>(aa[8]) << 64) | aa[9];
-  x.a = (static_cast<unsigned __int128>(aa[10]) << 64) | aa[11];
-  y.a = (static_cast<unsigned __int128>(aa[12]) << 64) | aa[13];
-  z.a = (static_cast<unsigned __int128>(aa[14]) << 64) | aa[15];
 
+  {
+    uint64_t aa[16] = {
+        0x5e1a75e3d05242b5, 0xe3474a91193544da, 0xbedf0f3064fd4f74, 0x38588d84069f4bb9,
+        0x7deb04d287ab49b7, 0xec734743a4c84a15, 0x096dadf136c74bad, 0x94fbb085d0f245b1,
+        0xa9cfc872640f4743, 0x50871f18f028408d, 0x3fffa4125d334bb0, 0x8a6748239a2a48ab,
+        0x21fb2e9b7c3340b0, 0x95b94d1f03f84a3a, 0x175bd55ef7764f54, 0x1e4328f8e88a4428};
+    w.m = (static_cast<unsigned __int128>(aa[0]) << 64) | aa[1];
+    x.m = (static_cast<unsigned __int128>(aa[2]) << 64) | aa[3];
+    y.m = (static_cast<unsigned __int128>(aa[4]) << 64) | aa[5];
+    z.m = (static_cast<unsigned __int128>(aa[6]) << 64) | aa[7];
+    w.a = (static_cast<unsigned __int128>(aa[8]) << 64) | aa[9];
+    x.a = (static_cast<unsigned __int128>(aa[10]) << 64) | aa[11];
+    y.a = (static_cast<unsigned __int128>(aa[12]) << 64) | aa[13];
+    z.a = (static_cast<unsigned __int128>(aa[14]) << 64) | aa[15];
+  }
   // cout << w.m[0] << endl;
   // if (0) {
   //   vector<KeyCode<string>> v;
@@ -156,47 +158,56 @@ int main() {
   // }
 
   //  if (0)
+
   {
     constexpr auto kRepeats = 100;
-    constexpr auto kPopulation = 1;
-    constexpr auto kMaxUniverse = 8462000;
-    constexpr auto kTagBits = 4;
-    DebugTable<uint32_t, kTagBits> dt(2 * kPopulation, x, y, z);
-    for (uint32_t i = 0; i < kPopulation; ++i) {
-      dt.Insert(i, w(i));
-    }
+    for (uint64_t kPopulation = 2; kPopulation <= 770; ++kPopulation) {
+      uint64_t kMaxUniverse = 1 << 20; // 18544 << 0;
+      constexpr auto kTagBits = 4;
+      DebugTable<uint32_t, kTagBits> dt(
+          1ul << static_cast<int>(ceil(log2(1.15 * kPopulation))), x, y, z);
+      for (uint32_t i = 0; i < kPopulation; ++i) {
+        dt.Insert(i, w(i));
+      }
 
-    vector<KeyCode<uint32_t>> v;
-    for (uint64_t i = 0; i < kMaxUniverse; ++i) {
-      if (0 == (i & (i - 1))) cerr << i << endl;
-      bool found = true;
-      for (int j = 0; j < kRepeats; ++j) {
-        if (DebugTable<uint32_t, kTagBits>::TrueNegative == dt.AdaptiveFind(i, w(i))) {
-          found = false;
-          break;
+      vector<KeyCode<uint32_t>> v;
+      for (uint64_t i = 0; i < kMaxUniverse; ++i) {
+        //if (0 == (i & (i - 1))) cerr << i << " " << v.size() << endl;
+
+        auto finder = dt.AdaptiveFind(i, w(i));
+        if (finder != DebugTable<uint32_t, kTagBits>::TrueNegative) {
+          bool found = true;
+          if (finder == DebugTable<uint32_t, kTagBits>::FalsePositive) {
+            for (int j = 0; j < kRepeats; ++j) {
+              if (DebugTable<uint32_t, kTagBits>::TrueNegative ==
+                  dt.AdaptiveFind(i, w(i))) {
+                found = false;
+                break;
+              }
+            }
+          }
+          if (found) v.push_back(KeyCode<uint32_t>{static_cast<uint32_t>(i), w(i)});
         }
       }
-      if (found) {
-        //cout << hex << (z(w(i)) & 0xffff) << endl;
-        // cerr << "found " << i << endl;
-        //assert(i < kPopulation);
-        v.push_back(KeyCode<uint32_t>{static_cast<uint32_t>(i), w(i)});
-      }
-    }
-    //assert(v.size() == kPopulation && "v.size == kPopulation");
+      // assert(v.size() == kPopulation && "v.size == kPopulation");
 
-    Rainbow<uint32_t, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
-    auto e = r.Extract();
-    cout << "v.size() " << v.size() << endl;
-    cout << "e.size() " << e.size() << endl;
-    vector<uint32_t> f(e.begin(), e.end());
-    sort(f.begin(), f.end());
-    for (auto& t : f) {
-      // cout << v[t].key << endl;
-    }
-    for (uint64_t i = 0; i < kPopulation; ++i) {
-      assert(i < f.size());
-      assert(v[f[i]].key == i);
+      Rainbow<uint32_t, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+      auto e = r.Extract();
+      cout << "v.size()    " << v.size() << endl;
+      cout << "kPopulation " << kPopulation << endl;
+      cout << "e.size()    " << e.size() << endl;
+      assert(e.size() <= kPopulation);
+      //assert(e.size() >= kPopulation);
+      vector<uint32_t> f(e.begin(), e.end());
+      sort(f.begin(), f.end());
+
+      for (auto& t : f) {
+        // cout << v[t].key << endl;
+      }
+      for (uint64_t i = 0; i < f.size(); ++i) {
+        // assert(i < f.size());
+        assert(v[f[i]].key >= i);
+      }
     }
   }
 }
