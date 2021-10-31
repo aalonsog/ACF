@@ -173,8 +173,8 @@ int main() {
 
   {
     constexpr auto kRepeats = 100;
-    for (uint64_t kPopulation = 2; kPopulation <= 770; ++kPopulation) {
-      uint64_t kMaxUniverse = 1 << 20; // 18544 << 0;
+    for (uint64_t kPopulation = 1; kPopulation <= (1 << 20); kPopulation *= 2) {
+      uint64_t kMaxUniverse = 1ul << 32; // 18544 << 0;
       constexpr auto kTagBits = 4;
       DebugTable<string, kTagBits> dt(
           1ul << static_cast<int>(ceil(log2(1.15 * kPopulation))), x, y, z);
@@ -184,8 +184,16 @@ int main() {
 
       vector<KeyCode<string>> v;
       for (uint64_t i = 0; i < kMaxUniverse; ++i) {
-        //if (0 == (i & (i - 1))) cerr << i << " " << v.size() << endl;
-
+        if (0 == (i & (i - 1))) {
+          cerr << i << " " << v.size() << endl;
+          Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+          auto e = r.Extract();
+          cout << "v.size()    " << v.size() << endl;
+          cout << "kPopulation " << kPopulation << endl;
+          cout << "e.size()    " << e.size() << endl;
+          assert(e.size() <= kPopulation);
+          if (v.size() >= kPopulation && e.empty()) break;
+        }
         auto finder = dt.AdaptiveFind(itoa(i), w(i));
         if (finder != DebugTable<string, kTagBits>::TrueNegative) {
           bool found = true;
