@@ -66,7 +66,11 @@ struct DebugTable {
     auto hash = hash_maker_(code) & (data_.size() - 1);
     while (true) {
       for (int j = 0; j < 4; ++j) {
-        if (data_[hash][j].full) continue;
+        if (data_[hash][j].full) {
+          continue;
+          assert(data_[hash][j].fingerprint =
+                     (print_makers_(data_[hash][j].code) >> (j * W)) & ((1 << W) - 1));
+        }
         data_[hash][j].back = key;
         data_[hash][j].code = code;
         data_[hash][j].fingerprint = print_makers_(code) >> (j * W);
@@ -77,8 +81,8 @@ struct DebugTable {
       using std::swap;
       swap(key, data_[hash][i].back);
       swap(code, data_[hash][i].code);
-      data_[hash][i].fingerprint = print_makers_(code) >> (i * W);
-      hash = (hash ^ xor_maker_(code)) & (data_.size() - 1);
+      data_[hash][i].fingerprint = print_makers_(data_[hash][i].code) >> (i * W);
+      hash = (hash_maker_(code) ^ xor_maker_(code)) & (data_.size() - 1);
     }
   }
 

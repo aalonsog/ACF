@@ -173,49 +173,84 @@ int main() {
 
   {
     constexpr auto kRepeats = 100;
-    for (uint64_t kPopulation = 1; kPopulation <= (1 << 20); kPopulation *= 2) {
-      uint64_t kMaxUniverse = 1ul << 32; // 18544 << 0;
-      constexpr auto kTagBits = 4;
+    for (uint64_t kPopulation = 1; kPopulation <= 1 << 16; kPopulation *= 2) {
+      uint64_t kMaxUniverse = 1 << 20; // 18544 << 0;
+      constexpr auto kTagBits = 5;
       DebugTable<string, kTagBits> dt(
-          1ul << static_cast<int>(ceil(log2(1.15 * kPopulation))), x, y, z);
+          1ul << static_cast<int>(ceil(log2(max(2.0, 1.15 * kPopulation / 4)))), x, y, z);
       for (uint32_t i = 0; i < kPopulation; ++i) {
-        dt.Insert(itoa(i), w(i));
+        dt.Insert(itoa(i), i /* w(i) */);
       }
 
       vector<KeyCode<string>> v;
       for (uint64_t i = 0; i < kMaxUniverse; ++i) {
-        if (0 == (i & (i - 1))) {
-          cerr << i << " " << v.size() << endl;
+        if (v.size() < kPopulation && v.size() != i) {
           Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
           auto e = r.Extract();
-          cout << "v.size()    " << v.size() << endl;
-          cout << "kPopulation " << kPopulation << endl;
-          cout << "e.size()    " << e.size() << endl;
           assert(e.size() <= kPopulation);
-          if (v.size() >= kPopulation && e.empty()) break;
+          if (true || e.size() != v.size()) {
+            cerr << i << " " << v.size() << endl;
+            cout << "v.size()    " << v.size() << endl;
+            cout << "kPopulation " << kPopulation << endl;
+            cout << "e.size()    " << e.size() << endl;
+            cout << "i           " << (i ) << endl;
+          }
+          assert(false);
         }
-        auto finder = dt.AdaptiveFind(itoa(i), w(i));
+
+        if (false && 0 == (i & (i - 1))) {
+          Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+          auto e = r.Extract();
+          assert(e.size() <= kPopulation);
+          if (true || e.size() != v.size()) {
+            cerr << i << " " << v.size() << endl;
+            cout << "v.size()    " << v.size() << endl;
+            cout << "kPopulation " << kPopulation << endl;
+            cout << "e.size()    " << e.size() << endl;
+
+          }
+          //if ((v.size() >= kPopulation) && e.empty()) break;
+        }
+        auto finder = dt.AdaptiveFind(itoa(i), i /* w(i) */);
         if (finder != DebugTable<string, kTagBits>::TrueNegative) {
           bool found = true;
           if (finder == DebugTable<string, kTagBits>::FalsePositive) {
             for (int j = 0; j < kRepeats; ++j) {
               if (DebugTable<string, kTagBits>::TrueNegative ==
-                  dt.AdaptiveFind(itoa(i), w(i))) {
+                  dt.AdaptiveFind(itoa(i), i /* w(i) */)) {
                 found = false;
                 break;
               }
             }
           }
-          if (found) v.push_back(KeyCode<string>{itoa(i), w(i)});
+          if (found) v.push_back(KeyCode<string>{itoa(i), i /* w(i) */});
+          if(v.size() < kPopulation && v.size() != i + 1) {
+            Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+            auto e = r.Extract();
+            assert(e.size() <= kPopulation);
+            if (true || e.size() != v.size()) {
+              cerr << i << " " << v.size() << endl;
+              cout << "v.size()    " << v.size() << endl;
+              cout << "kPopulation " << kPopulation << endl;
+              cout << "e.size()    " << e.size() << endl;
+              cout << "i+1         " << (i + 1) << endl;
+            }
+            assert(false);
+          }
         }
       }
       // assert(v.size() == kPopulation && "v.size == kPopulation");
 
       Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
       auto e = r.Extract();
-      cout << "v.size()    " << v.size() << endl;
-      cout << "kPopulation " << kPopulation << endl;
-      cout << "e.size()    " << e.size() << endl;
+
+      if (e.size() != v.size()) {
+        cout << "dt.data_.size() " << dt.data_.size() << endl;
+        cout << "v.size()        " << v.size() << endl;
+        cout << "kPopulation     " << kPopulation << endl;
+        cout << "e.size()        " << e.size() << endl;
+
+      }
       assert(e.size() <= kPopulation);
       //assert(e.size() >= kPopulation);
       vector<uint64_t> f(e.begin(), e.end());
