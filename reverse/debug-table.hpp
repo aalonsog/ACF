@@ -82,17 +82,30 @@ struct DebugTable {
       swap(key, data_[hash][i].back);
       swap(code, data_[hash][i].code);
       data_[hash][i].fingerprint = print_makers_(data_[hash][i].code) >> (i * W);
-      hash = (hash_maker_(code) ^ xor_maker_(code)) & (data_.size() - 1);
+      auto new_hash = hash_maker_(code) & (data_.size() -1 );
+      if (new_hash == hash) new_hash = (new_hash ^ xor_maker_(code)) & (data_.size() - 1);
+      hash = new_hash;
     }
   }
 
-  enum Found { TrueNegative, TruePositive, FalsePositive };
+  enum Found { TrueNegative = 0, TruePositive = 1, FalsePositive = 2 };
   Found AdaptiveFind(const Z& key, uint64_t code) {
+    bool debug = false;
+    if (code == 985567 or code == 995618) {
+      debug = true;
+      //cout << "here\n";
+    }
     auto hash = hash_maker_(code) & (data_.size() - 1);
     //cout << hex << print_makers_(code) << endl;
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 4; ++j) {
         if (not data_[hash][j].full) continue;
+
+        if (debug) {
+          cout << code << " present " << data_[hash][j].code << " prints " << hex
+               << (print_makers_(data_[hash][j].code) & ((1ul << 4 * W) - 1)) << dec
+               << endl;
+        }
         if (data_[hash][j].fingerprint !=
             ((print_makers_(code) >> (j * W)) & ((1ul << W) - 1))) {
           continue;
@@ -101,6 +114,7 @@ struct DebugTable {
         //cout << "fp " << j << " " << data_[hash][j].fingerprint << endl;
         int k = j;
         while (k == j) k = rand() % 4;
+        if (debug) cout << j << " new " << k << endl;
         //cout << "swap " << k << " " << data_[hash][j].back << " " << data_[hash][k].back << endl;
         using std::swap;
         swap(data_[hash][j].full, data_[hash][k].full);
