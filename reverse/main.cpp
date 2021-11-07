@@ -1,5 +1,3 @@
-// Performs key inference on an adaptive cuckoo filter
-
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -9,133 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "debug-table.hpp"
-
-using namespace std;
-
-// // Three strong typedefs to avoid accidentally confusing one integer for another
-
-// struct Fingerprints {
-//   uint64_t fingerprints;
-// };
-
-// bool operator==(const Fingerprints& x, const Fingerprints& y) {
-//   return x.fingerprints == y.fingerprints;
-// }
-
-// template <>
-// struct hash<Fingerprints> {
-//   size_t operator()(Fingerprints x) const {
-//     hash<uint64_t> h;
-//     return h(x.fingerprints);
-//   }
-// };
-
-// struct Index {
-//   uint64_t index;
-// };
-
-// bool operator==(const Index& x, const Index& y) {
-//   return x.index == y.index;
-// }
-
-// template <>
-// struct hash<Index> {
-//   size_t operator()(Index x) const {
-//     hash<uint64_t> h;
-//     return h(x.index);
-//   }
-// };
-
-// struct KeyIndex {
-//   uint64_t key_index;
-// };
-
-// bool operator==(const KeyIndex& x, const KeyIndex& y) {
-//   return x.key_index == y.key_index;
-// }
-
-// template <>
-// struct hash<KeyIndex> {
-//   size_t operator()(KeyIndex x) const {
-//     hash<uint64_t> h;
-//     return h(x.key_index);
-//   }
-// };
-
-template <typename T>
-struct KeyCode {
-  T key = T();
-  uint64_t code = -1ul;
-};
-
-// Rainbow is a table structure to organize input keys by their fingerprint values, then
-// their index values (location in the ACF).
-//
-// To use, the caller needs to know the identities of the keys, the hash function
-// producing fingerprints (here as four 16-bit values in on uint64_t), and the two hash
-// functions producing indexes into the ACF.
-template<typename T, int W>
-struct Rainbow {
-  static_assert(W <= 16, "W <= 16");
-  uint64_t mask;
-  // fingerprint -> index_into_filter -> index_into_key_vector
-  unordered_map<uint64_t, unordered_map<uint64_t, unordered_set<uint64_t>>> table;
-  const vector<KeyCode<T>>& keys;
-  MS64 hash_maker;
-  MS64 xor_maker;
-
-  template <typename U>
-  Rainbow(uint64_t mask, const vector<KeyCode<T>>& keys, MS64 hash_maker, MS64 xor_maker,
-          U fingerprinter)
-      : mask(mask), keys(keys), hash_maker(hash_maker), xor_maker(xor_maker) {
-    size_t n = keys.size();
-    for(uint64_t i = 0; i < n; ++i) {
-      for (uint64_t index :
-           {hash_maker(keys[i].code) & mask,
-            (hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask}) {
-        if (index == 25881 or index == 11489 or index == 32568 or
-            0x61085 == (fingerprinter(keys[i].code) & ((1ul << ((4 * W) % 64)) - 1)) or
-            0x650a5 == (fingerprinter(keys[i].code) & ((1ul << ((4 * W) % 64)) - 1))) {
-          cout << "big " << keys[i].key << " " << keys[i].code << " fingerprints " << hex
-               << (fingerprinter(keys[i].code) & ((1ul << ((4 * W) % 64)) - 1)) << dec
-               << " index1 " << (hash_maker(keys[i].code) & mask) << " index2 "
-               << ((hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask) << endl;
-        }
-        table[fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1)][index].insert(i);
-      }
-    }
-  }
-
-  unordered_set<uint64_t> Extract() {
-    unordered_set<uint64_t> result;
-    for (auto& bucket : table) {
-      for (auto& index_map : bucket.second) {
-        if (index_map.second.size() > 1) {
-          for (auto& x : index_map.second) {
-            cerr << "unrecoverable A " << x << endl;
-          }
-          continue;
-        }
-        auto ki = *index_map.second.begin();
-        bool unique = true;
-        for (uint64_t index :
-             {hash_maker(keys[ki].code) & mask,
-              (hash_maker(keys[ki].code) ^ xor_maker(keys[ki].code)) & mask}) {
-          if (bucket.second.find(index)->second.size() > 1) {
-            for (auto& x : bucket.second.find(index)->second) {
-              cerr << "unrecoverable B " << x << endl;
-            }
-            unique = false;
-            break;
-          }
-        }
-        if (unique) result.insert(ki);
-      }
-    }
-    return result;
-  }
-};
+#include "rainbow.hpp"
 
 string itoa(uint32_t i) {
   if (0 == i) return "0";
@@ -146,6 +18,30 @@ string itoa(uint32_t i) {
   }
   reverse(result.begin(), result.end());
   return result;
+}
+
+template <typename U, int W, typename T>
+vector<T> GetPositives(DebugTable<U, W>& dt, T universeBegin, T universeEnd) {
+  constexpr int kRepeats = 50;
+  vector<T> v;
+  for (auto i = universeBegin; i != universeEnd; ++i) {
+    auto finder = dt.AdaptiveFind(i->first, i->second);
+    if (finder != DebugTable<U, W>::TrueNegative) {
+      bool found = true;
+      if (finder == DebugTable<U, W>::FalsePositive) {
+        for (int j = 0; j < kRepeats; ++j) {
+          auto inner_finder = dt.AdaptiveFind(i->first, i->second);
+          if (inner_finder == DebugTable<U, W>::TruePositive) break;
+          if (inner_finder == DebugTable<U, W>::TrueNegative) {
+            found = false;
+            break;
+          }
+        }
+      }
+      if (found) v.push_back(i);
+    }
+  }
+  return v;
 }
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
@@ -183,115 +79,53 @@ int main() {
 
   //  if (0)
 
-  {
-    constexpr auto kRepeats = 50;
-    for (uint64_t kPopulation = 43691; kPopulation >= 43691; kPopulation = kPopulation - 1) {
-      uint64_t kMaxUniverse = 995619;
-      constexpr auto kTagBits = 5;
-      DebugTable<string, kTagBits> dt(
-          1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
-      for (uint32_t i = 0; i < kPopulation; ++i) {
-        try {
-          dt.Insert(itoa(i), i /* w(i) */);
-        } catch(...) {
-        }
-      }
+  for (uint64_t kPopulation = 1 << 0; kPopulation < (1 << 20); kPopulation *= 2) {
+    cout << "kPopulation " << kPopulation << endl;
+    uint64_t kMaxUniverse = 1 << 25;
+    constexpr auto kTagBits = 5;
+    DebugTable<string, kTagBits> dt(
+        1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+    vector<pair<string,uint32_t>> universe;
+    for (uint32_t i = 0; i < kPopulation; ++i) {
+      dt.Insert(itoa(i), i);
+    }
 
-      vector<KeyCode<string>> v;
-      for (uint64_t i = 0; i < kMaxUniverse; ++i) {
-        if (v.size() < kPopulation && v.size() != i) {
-          Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
-          auto e = r.Extract();
-          assert(e.size() <= kPopulation);
-          if (true || e.size() != v.size()) {
-            cerr << i << " " << v.size() << endl;
-            cout << "v.size()    " << v.size() << endl;
-            cout << "kPopulation " << kPopulation << endl;
-            cout << "e.size()    " << e.size() << endl;
-            cout << "i           " << (i ) << endl;
-          }
-          assert(false);
-        }
+    for (uint32_t i = 0; i < kMaxUniverse; ++i) {
+      universe.push_back(make_pair(itoa(i), i));
+    }
 
-        if (false && 0 == (i & (i - 1))) {
-          Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
-          auto e = r.Extract();
-          assert(e.size() <= kPopulation);
-          if (true || e.size() != v.size()) {
-            cerr << i << " " << v.size() << endl;
-            cout << "v.size()    " << v.size() << endl;
-            cout << "kPopulation " << kPopulation << endl;
-            cout << "e.size()    " << e.size() << endl;
+    auto vv = GetPositives(dt, universe.begin(), universe.end());
+    vector<KeyCode<string>> v;
+    for (auto& ww: vv) {
+      v.push_back(KeyCode<string>{ww->first, ww->second});
+    }
 
-          }
-          //if ((v.size() >= kPopulation) && e.empty()) break;
-        }
-        auto finder = dt.AdaptiveFind(itoa(i), i /* w(i) */);
-        if (finder != DebugTable<string, kTagBits>::TrueNegative) {
-          bool found = true;
-          if (finder == DebugTable<string, kTagBits>::FalsePositive) {
-            for (int j = 0; j < kRepeats; ++j) {
-              auto inner_finder = dt.AdaptiveFind(itoa(i), i /* w(i) */);
-              if (inner_finder == DebugTable<string, kTagBits>::TruePositive) break;
-              if (inner_finder == DebugTable<string, kTagBits>::TrueNegative) {
-                found = false;
-                break;
-              }
-            }
-          }
-          if (found) {
-            v.push_back(KeyCode<string>{itoa(i), i /* w(i) */});
-            if (i >= kPopulation) {
-              cout << "big " << i << " " << finder << " fingerprints " << hex
-                   << (z(i) & ((1ul << ((4 * kTagBits) % 64)) - 1)) << dec << " index1 "
-                   << (x(i) & (dt.data_.size() - 1)) << " index2 "
-                   << ((x(i) ^ y(i)) & (dt.data_.size() - 1)) << endl;
-            }
-          }
-          if(v.size() < kPopulation && v.size() != i + 1) {
-            Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
-            auto e = r.Extract();
-            assert(e.size() <= kPopulation);
-            if (true || e.size() != v.size()) {
-              cerr << i << " " << v.size() << endl;
-              cout << "v.size()    " << v.size() << endl;
-              cout << "kPopulation " << kPopulation << endl;
-              cout << "e.size()    " << e.size() << endl;
-              cout << "i+1         " << (i + 1) << endl;
-            }
-            //assert(false);
-          }
-        }
-      }
-      // assert(v.size() == kPopulation && "v.size == kPopulation");
+    Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
+    auto e = r.Extract();
+    vector<uint64_t> f(e.begin(), e.end());
+    sort(f.begin(), f.end());
 
-      Rainbow<string, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
-      auto e = r.Extract();
-      vector<uint64_t> f(e.begin(), e.end());
-      sort(f.begin(), f.end());
+    if (f.size() != kPopulation) {
+      cout << "dt.data_.size() " << dt.data_.size() << endl;
+      cout << "v.size()        " << v.size() << endl;
+      cout << "kPopulation     " << kPopulation << endl;
+      cout << "e.size()        " << e.size() << endl;
+      // for (auto x : v) {
+      //   if (atoi(x.key.c_str()) >= kPopulation) cout << "uhoh before: " << x.key << endl;
+      // }
+      // for (auto x : e) {
+      //   if (x >= kPopulation) cout << "uhoh after:  " << x << endl;
+      // }
+    }
+    // assert(e.size() <= kPopulation);
+    // assert(e.size() >= kPopulation);
 
-      if (f.size() > kPopulation) {
-        cout << "dt.data_.size() " << dt.data_.size() << endl;
-        cout << "v.size()        " << v.size() << endl;
-        cout << "kPopulation     " << kPopulation << endl;
-        cout << "e.size()        " << e.size() << endl;
-        for (auto x : v) {
-          if (atoi(x.key.c_str()) >= kPopulation) cout << "uhoh before: " << x.key << endl;
-        }
-        for (auto x : e) {
-          if (x >= kPopulation) cout << "uhoh after:  " << x << endl;
-        }
-      }
-      //assert(e.size() <= kPopulation);
-      //assert(e.size() >= kPopulation);
-
-      for (auto& t : f) {
-        // cout << v[t].key << endl;
-      }
-      for (uint64_t i = 0; i < f.size(); ++i) {
-        // assert(i < f.size());
-        assert(atoi(v[f[i]].key.c_str()) >= i);
-      }
+    for (auto& t : f) {
+      // cout << v[t].key << endl;
+    }
+    for (uint64_t i = 0; i < f.size(); ++i) {
+      // assert(i < f.size());
+      assert(atoi(v[f[i]].key.c_str()) >= i);
     }
   }
 }

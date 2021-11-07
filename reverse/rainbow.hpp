@@ -1,0 +1,155 @@
+// Performs key inference on an adaptive cuckoo filter
+
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+#include "debug-table.hpp"
+
+using namespace std;
+
+// // Three strong typedefs to avoid accidentally confusing one integer for another
+
+// struct Fingerprints {
+//   uint64_t fingerprints;
+// };
+
+// bool operator==(const Fingerprints& x, const Fingerprints& y) {
+//   return x.fingerprints == y.fingerprints;
+// }
+
+// template <>
+// struct hash<Fingerprints> {
+//   size_t operator()(Fingerprints x) const {
+//     hash<uint64_t> h;
+//     return h(x.fingerprints);
+//   }
+// };
+
+// struct Index {
+//   uint64_t index;
+// };
+
+// bool operator==(const Index& x, const Index& y) {
+//   return x.index == y.index;
+// }
+
+// template <>
+// struct hash<Index> {
+//   size_t operator()(Index x) const {
+//     hash<uint64_t> h;
+//     return h(x.index);
+//   }
+// };
+
+// struct KeyIndex {
+//   uint64_t key_index;
+// };
+
+// bool operator==(const KeyIndex& x, const KeyIndex& y) {
+//   return x.key_index == y.key_index;
+// }
+
+// template <>
+// struct hash<KeyIndex> {
+//   size_t operator()(KeyIndex x) const {
+//     hash<uint64_t> h;
+//     return h(x.key_index);
+//   }
+// };
+
+template <typename T>
+struct KeyCode {
+  T key = T();
+  uint64_t code = -1ul;
+};
+
+// Rainbow is a table structure to organize input keys by their fingerprint values, then
+// their index values (location in the ACF).
+//
+// To use, the caller needs to know the identities of the keys, the hash function
+// producing fingerprints (here as four 16-bit values in on uint64_t), and the two hash
+// functions producing indexes into the ACF.
+template<typename T, int W>
+struct Rainbow {
+  static_assert(W <= 16, "W <= 16");
+  uint64_t mask;
+  // fingerprint -> index_into_filter -> index_into_key_vector
+  // TODO: should last one be a vector?
+  unordered_map<uint64_t, unordered_map<uint64_t, unordered_set<uint64_t>>> table;
+  // index_into_filter -> (index_into_key_vector, fingerprint)
+  unordered_map<uint64_t, unordered_map<uint64_t, uint64_t>> filter_all_options;
+  const vector<KeyCode<T>>& keys;
+  MS64 hash_maker;
+  MS64 xor_maker;
+
+  template <typename U>
+  Rainbow(uint64_t mask, const vector<KeyCode<T>>& keys, MS64 hash_maker, MS64 xor_maker,
+          U fingerprinter)
+      : mask(mask), keys(keys), hash_maker(hash_maker), xor_maker(xor_maker) {
+    if (mask & (mask + 1)) throw mask;
+    size_t n = keys.size();
+    for (uint64_t i = 0; i < n; ++i) {
+      for (uint64_t index :
+           {hash_maker(keys[i].code) & mask,
+            (hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask}) {
+        table[fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1)][index].insert(i);
+        filter_all_options[index][i] = fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1);
+      }
+    }
+  }
+
+  unordered_set<uint64_t> Extract() {
+    unordered_set<uint64_t> blocklist;
+    for (auto& bucket : filter_all_options) {
+      if (bucket.second.size() > 4) {
+        for (int i = 0; i < 4; ++i) {
+          // fingerprint -> index_into_key_vector
+          unordered_map<uint64_t, unordered_set<uint64_t>> collisions;
+          for (auto& x : bucket.second) {
+            collisions[((1 << W) - 1) & ((x.second >> (W * i)))].insert(x.first);
+          }
+          for (auto& s : collisions) {
+            if (s.second.size() > 4) {
+              blocklist.insert(s.second.begin(), s.second.end());
+              // for (auto& t : s.second) cerr << "blocklist " << t << endl;
+            }
+          }
+        }
+      }
+    }
+    unordered_set<uint64_t> result;
+    for (auto& bucket : table) {
+      for (auto& index_map : bucket.second) {
+        if (index_map.second.size() > 1) {
+          for (auto& x : index_map.second) {
+            // cerr << "unrecoverable A " << x << endl;
+          }
+          continue;
+        }
+        auto ki = *index_map.second.begin();
+        bool unique = true;
+        for (uint64_t index :
+             {hash_maker(keys[ki].code) & mask,
+              (hash_maker(keys[ki].code) ^ xor_maker(keys[ki].code)) & mask}) {
+          if (bucket.second.find(index)->second.size() > 1) {
+            for (auto& x : bucket.second.find(index)->second) {
+              // cerr << "unrecoverable B " << x << endl;
+            }
+            unique = false;
+            break;
+          }
+        }
+        if (unique) result.insert(ki);
+      }
+    }
+    for (auto& x : blocklist) result.erase(x);
+
+    return result;
+  }
+};

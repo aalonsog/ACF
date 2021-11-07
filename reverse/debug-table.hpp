@@ -92,7 +92,7 @@ struct DebugTable {
   Found AdaptiveFind(const Z& key, uint64_t code) {
     bool debug = false;
     if (code == 985567 or code == 995618) {
-      debug = true;
+      debug = false;
       //cout << "here\n";
     }
     auto hash = hash_maker_(code) & (data_.size() - 1);
