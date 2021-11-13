@@ -38,9 +38,26 @@ struct MS64 {
   }
 };
 
+struct MS128 {
+  MS64 p[2];
+  static MS128 FromDevice() {
+    MS128 x;
+    x.p[0] = MS64::FromDevice();
+    x.p[1] = MS64::FromDevice();
+    return x;
+  }
+  unsigned __int128 operator()(uint64_t x) const {
+    unsigned __int128 result = p[0](x);
+    result = result << 64;
+    result |= p[1](x);
+    return result;
+  }
+};
+
+
 template<typename Z, int W>
 struct DebugTable {
-  static_assert(W <= 16, "W <= 16");
+  static_assert(W <= 32, "W <= 32");
   struct Slot {
     bool full = false;
     uint64_t fingerprint : W;
@@ -51,9 +68,9 @@ struct DebugTable {
   vector<array<Slot, 4>> data_;
   MS64 hash_maker_;
   MS64 xor_maker_;
-  MS64 print_makers_;
+  MS128 print_makers_;
 
-  DebugTable(size_t bucket_count, MS64 hash_maker, MS64 xor_maker, MS64 print_makers)
+  DebugTable(size_t bucket_count, MS64 hash_maker, MS64 xor_maker, MS128 print_makers)
       : data_(bucket_count),
         hash_maker_(hash_maker),
         xor_maker_(xor_maker),
@@ -64,12 +81,13 @@ struct DebugTable {
 
   void Insert(Z key, uint64_t code) {
     auto hash = hash_maker_(code) & (data_.size() - 1);
+    int ttl = 100;
     while (true) {
       for (int j = 0; j < 4; ++j) {
         if (data_[hash][j].full) {
           continue;
-          assert(data_[hash][j].fingerprint =
-                     (print_makers_(data_[hash][j].code) >> (j * W)) & ((1 << W) - 1));
+          // assert(data_[hash][j].fingerprint ==
+          //            (print_makers_(data_[hash][j].code) >> (j * W)) & ((1 << W) - 1));
         }
         data_[hash][j].back = key;
         data_[hash][j].code = code;
@@ -82,30 +100,32 @@ struct DebugTable {
       swap(key, data_[hash][i].back);
       swap(code, data_[hash][i].code);
       data_[hash][i].fingerprint = print_makers_(data_[hash][i].code) >> (i * W);
-      auto new_hash = hash_maker_(code) & (data_.size() -1 );
+      auto new_hash = hash_maker_(code) & (data_.size() - 1);
       if (new_hash == hash) new_hash = (new_hash ^ xor_maker_(code)) & (data_.size() - 1);
       hash = new_hash;
+      --ttl;
+      if (ttl < 0) throw key;
     }
   }
 
   enum Found { TrueNegative = 0, TruePositive = 1, FalsePositive = 2 };
   Found AdaptiveFind(const Z& key, uint64_t code) {
     bool debug = false;
-    if (code == 985567 or code == 995618) {
-      debug = false;
-      //cout << "here\n";
-    }
+    // if (code == 985567 or code == 995618) {
+    //   debug = false;
+    //   //cout << "here\n";
+    // }
     auto hash = hash_maker_(code) & (data_.size() - 1);
     //cout << hex << print_makers_(code) << endl;
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < 4; ++j) {
         if (not data_[hash][j].full) continue;
 
-        if (debug) {
-          cout << code << " present " << data_[hash][j].code << " prints " << hex
-               << (print_makers_(data_[hash][j].code) & ((1ul << 4 * W) - 1)) << dec
-               << endl;
-        }
+        // if (debug) {
+        //   cout << code << " present " << data_[hash][j].code << " prints " << hex
+        //        << (print_makers_(data_[hash][j].code) & ((1ul << 4 * W) - 1)) << dec
+        //        << endl;
+        // }
         if (data_[hash][j].fingerprint !=
             ((print_makers_(code) >> (j * W)) & ((1ul << W) - 1))) {
           continue;

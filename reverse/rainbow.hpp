@@ -13,56 +13,6 @@
 
 using namespace std;
 
-// // Three strong typedefs to avoid accidentally confusing one integer for another
-
-// struct Fingerprints {
-//   uint64_t fingerprints;
-// };
-
-// bool operator==(const Fingerprints& x, const Fingerprints& y) {
-//   return x.fingerprints == y.fingerprints;
-// }
-
-// template <>
-// struct hash<Fingerprints> {
-//   size_t operator()(Fingerprints x) const {
-//     hash<uint64_t> h;
-//     return h(x.fingerprints);
-//   }
-// };
-
-// struct Index {
-//   uint64_t index;
-// };
-
-// bool operator==(const Index& x, const Index& y) {
-//   return x.index == y.index;
-// }
-
-// template <>
-// struct hash<Index> {
-//   size_t operator()(Index x) const {
-//     hash<uint64_t> h;
-//     return h(x.index);
-//   }
-// };
-
-// struct KeyIndex {
-//   uint64_t key_index;
-// };
-
-// bool operator==(const KeyIndex& x, const KeyIndex& y) {
-//   return x.key_index == y.key_index;
-// }
-
-// template <>
-// struct hash<KeyIndex> {
-//   size_t operator()(KeyIndex x) const {
-//     hash<uint64_t> h;
-//     return h(x.key_index);
-//   }
-// };
-
 template <typename T>
 struct KeyCode {
   T key = T();
@@ -77,10 +27,11 @@ struct KeyCode {
 // functions producing indexes into the ACF.
 template<typename T, int W>
 struct Rainbow {
-  static_assert(W <= 16, "W <= 16");
+  static_assert(W <= 32, "W <= 32");
   uint64_t mask;
   // fingerprint -> index_into_filter -> index_into_key_vector
   // TODO: should last one be a vector?
+  // TODO: key should be unsigned __int128?
   unordered_map<uint64_t, unordered_map<uint64_t, unordered_set<uint64_t>>> table;
   // index_into_filter -> (index_into_key_vector, fingerprint)
   unordered_map<uint64_t, unordered_map<uint64_t, uint64_t>> filter_all_options;
@@ -127,9 +78,9 @@ struct Rainbow {
     for (auto& bucket : table) {
       for (auto& index_map : bucket.second) {
         if (index_map.second.size() > 1) {
-          for (auto& x : index_map.second) {
-            // cerr << "unrecoverable A " << x << endl;
-          }
+          // for (auto& x : index_map.second) {
+          //   // cerr << "unrecoverable A " << x << endl;
+          // }
           continue;
         }
         auto ki = *index_map.second.begin();
@@ -138,9 +89,9 @@ struct Rainbow {
              {hash_maker(keys[ki].code) & mask,
               (hash_maker(keys[ki].code) ^ xor_maker(keys[ki].code)) & mask}) {
           if (bucket.second.find(index)->second.size() > 1) {
-            for (auto& x : bucket.second.find(index)->second) {
-              // cerr << "unrecoverable B " << x << endl;
-            }
+            // for (auto& x : bucket.second.find(index)->second) {
+            //   // cerr << "unrecoverable B " << x << endl;
+            // }
             unique = false;
             break;
           }
