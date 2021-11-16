@@ -102,19 +102,24 @@ redo:
 
   cout << "f_b = " << kTagBits << "\t";
   cout << "recovered " << 100.0 * e.size() / kPopulation << "%\t";
-  cout << "unrecovered " << 100.0 - 100.0 * e.size() / kPopulation << '%' << endl;
+  cout << "unrecovered " << 100.0 - 100.0 * e.size() / kPopulation << "%\t";
+  cout << "positives " << vv.size() << "\t";
+  cout << "true pop = " << kPopulation << endl;
 }
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int, char ** argv) {
-  constexpr size_t universe = 1ul << 32;
+  constexpr size_t universe = 1ul << 28;
   istringstream s(argv[1]);
   int f_b;
   s >> f_b;
   switch (f_b) {
   case 4:
     TestRecover<4>(1ul << 18, universe);
+    break;
+  case 5:
+    TestRecover<5>(1ul << 18, universe);
     break;
   case 6:
     TestRecover<6>(1ul << 18, universe);
@@ -131,9 +136,15 @@ int main(int, char ** argv) {
   case 14:
     TestRecover<14>(1ul << 18, universe);
     break;
+  case 15:
+    TestRecover<15>(1ul << 18, universe);
+    break;
   case 16:
     TestRecover<16>(1ul << 18, universe);
     break;
+  // case 17:
+  //   TestRecover<17>(1ul << 18, universe);
+  //   break;
   default:
     throw 0;
   }

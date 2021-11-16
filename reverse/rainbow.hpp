@@ -43,14 +43,17 @@ struct Rainbow {
   Rainbow(uint64_t mask, const vector<KeyCode<T>>& keys, MS64 hash_maker, MS64 xor_maker,
           U fingerprinter)
       : mask(mask), keys(keys), hash_maker(hash_maker), xor_maker(xor_maker) {
+    static_assert(W <= 16, "W <= 16");
+    constexpr uint64_t kFingerprintMask = (W == 16) ? -1ul : ((1ul << ((4 * W) % 64)) - 1);
     if (mask & (mask + 1)) throw mask;
     size_t n = keys.size();
     for (uint64_t i = 0; i < n; ++i) {
+      const auto fingerprints = fingerprinter(keys[i].code) & kFingerprintMask;
       for (uint64_t index :
            {hash_maker(keys[i].code) & mask,
             (hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask}) {
-        table[fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1)][index].insert(i);
-        filter_all_options[index][i] = fingerprinter(keys[i].code) & ((1ul << (4 * W % 64)) - 1);
+        table[fingerprints][index].insert(i);
+        filter_all_options[index][i] = fingerprints;
       }
     }
   }
@@ -100,7 +103,7 @@ struct Rainbow {
       }
     }
     for (auto& x : blocklist) result.erase(x);
-
+    cout << "blocklist.size() " << blocklist.size() << "\t";
     return result;
   }
 };
