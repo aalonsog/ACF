@@ -110,7 +110,7 @@ redo:
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int, char ** argv) {
-  constexpr size_t universe = 1ul << 28;
+  constexpr size_t universe = 1ul << 24;
   istringstream s(argv[1]);
   int f_b;
   s >> f_b;

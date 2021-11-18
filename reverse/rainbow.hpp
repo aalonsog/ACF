@@ -60,6 +60,7 @@ struct Rainbow {
 
   unordered_set<uint64_t> Extract() {
     unordered_set<uint64_t> blocklist;
+    unordered_map<uint64_t, uint64_t> blocklist_support;
     for (auto& bucket : filter_all_options) {
       if (bucket.second.size() > 4) {
         for (int i = 0; i < 4; ++i) {
@@ -70,6 +71,7 @@ struct Rainbow {
           }
           for (auto& s : collisions) {
             if (s.second.size() > 4) {
+              blocklist_support[bucket.first] = bucket.second.size();
               blocklist.insert(s.second.begin(), s.second.end());
               // for (auto& t : s.second) cerr << "blocklist " << t << endl;
             }
@@ -102,8 +104,15 @@ struct Rainbow {
         if (unique) result.insert(ki);
       }
     }
+    cout << "extracted size " << result.size() << "\t";
     for (auto& x : blocklist) result.erase(x);
     cout << "blocklist.size() " << blocklist.size() << "\t";
+    cout << "blocklist support " << blocklist_support.size() << "\t";
+    size_t heaviest_bucket = 0;
+    for (auto & i : blocklist_support) {
+      heaviest_bucket = max(heaviest_bucket, i.second);
+    }
+    cout << "heaviest support " << heaviest_bucket << "\t";
     return result;
   }
 };
