@@ -59,13 +59,14 @@ struct Int64Iterator {
 
 
 template <int kTagBits>
-void TestRecover(size_t kPopulation, size_t universe) {
+void TestRecover(const size_t kPopulation, size_t universe) {
 redo:
   auto /*w = MS128::FromDevice(), */
       x = MS64::FromDevice(),
       y = MS64::FromDevice();
   auto z = MS128::FromDevice();
   // uint64_t kMaxUniverse = 1ul << 25;
+  size_t current_pop = 0;
 
   DebugTable<uint64_t, kTagBits> dt(
       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
@@ -75,7 +76,7 @@ redo:
       const double filled = 100.0 * i / dt.data_.size() / 4;
       if (filled >= 95.0) {
         // cout << "filled " << filled << '%' << endl;
-        kPopulation = i + 1;
+        current_pop = i + 1;
         // cout << "kPopulation " << kPopulation << endl;
         // cout << "dt.data_.size() " << dt.data_.size() << endl;
         break;
@@ -84,7 +85,7 @@ redo:
       // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
       // // TODO: how to undo this?
       // kPopulation = 1ul << 20;
-      // cout << "kPopulation " << kPopulation << endl;
+      cout << "kPopulation " << (i+1) << " " << (100.0 * i / dt.data_.size() / 4) << endl;
       goto redo;
     }
   }
@@ -101,10 +102,10 @@ redo:
   sort(f.begin(), f.end());
 
   cout << "f_b = " << kTagBits << "\t";
-  cout << "recovered " << 100.0 * e.size() / kPopulation << "%\t";
-  cout << "unrecovered " << 100.0 - 100.0 * e.size() / kPopulation << "%\t";
+  cout << "recovered " << 100.0 * e.size() / current_pop << "%\t";
+  cout << "unrecovered " << 100.0 - 100.0 * e.size() / current_pop << "%\t";
   cout << "positives " << vv.size() << "\t";
-  cout << "true pop = " << kPopulation << endl;
+  cout << "true pop = " << current_pop << endl;
 }
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be

@@ -105,14 +105,16 @@ struct Rainbow {
       }
     }
     cout << "extracted size " << result.size() << "\t";
-    for (auto& x : blocklist) result.erase(x);
+    size_t erased = 0;
+    for (auto& x : blocklist) erased += result.erase(x);
     cout << "blocklist.size() " << blocklist.size() << "\t";
-    cout << "blocklist support " << blocklist_support.size() << "\t";
-    size_t heaviest_bucket = 0;
-    for (auto & i : blocklist_support) {
-      heaviest_bucket = max(heaviest_bucket, i.second);
-    }
-    cout << "heaviest support " << heaviest_bucket << "\t";
+    // cout << "erased " << erased << "\t";
+    // cout << "blocklist support " << blocklist_support.size() << "\t";
+    // size_t heaviest_bucket = 0;
+    // for (auto & i : blocklist_support) {
+    //   heaviest_bucket = max(heaviest_bucket, i.second);
+    // }
+    // cout << "heaviest support " << heaviest_bucket << "\t";
     return result;
   }
 };

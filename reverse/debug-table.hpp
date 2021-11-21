@@ -23,18 +23,25 @@ struct MS32 {
 };
 
 struct MS64 {
-  unsigned __int128 m, a;
+  // unsigned __int128 m, a;
+  uint64_t seed[8][256];
   static MS64 FromDevice() {
     random_device d;
     MS64 result;
     for (int i = 0; i < 8; ++i) {
-      reinterpret_cast<uint32_t*>(&result)[i] = d();
+      for (int j = 0; j < 256; ++j) {
+        result.seed[i][j] = d();
+        result.seed[i][j] |= static_cast<uint64_t>(d()) << 32;
+      }
     }
     return result;
   }
   uint64_t operator()(uint64_t x) const {
-    static_assert(std::is_same<decltype(x * m), decltype(m)>::value, "64 * 128 = 128");
-    return ((x * m) + a) >> 64;
+    uint64_t result = 0;
+    for (int i = 0; i < 8; ++i) {
+      result ^= seed[i][(x >> (i * 8)) & 0xff];
+    }
+    return result;
   }
 };
 
@@ -81,7 +88,7 @@ struct DebugTable {
 
   void Insert(Z key, uint64_t code) {
     auto hash = hash_maker_(code) & (data_.size() - 1);
-    int ttl = 100;
+    int ttl = 500;
     while (true) {
       for (int j = 0; j < 4; ++j) {
         if (data_[hash][j].full) {
