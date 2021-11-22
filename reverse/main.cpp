@@ -23,7 +23,7 @@ string itoa(uint32_t i) {
 
 template <typename U, int W, typename T>
 vector<T> GetPositives(DebugTable<U, W>& dt, T universeBegin, T universeEnd) {
-  constexpr int kRepeats = 50;
+  constexpr int kRepeats = 50;  // max(800 / W, 50);
   vector<T> v;
   for (auto i = universeBegin; i != universeEnd; ++i) {
     auto finder = dt.AdaptiveFind(i->first, i->second);
@@ -85,7 +85,7 @@ redo:
       // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
       // // TODO: how to undo this?
       // kPopulation = 1ul << 20;
-      cout << "kPopulation " << (i+1) << " " << (100.0 * i / dt.data_.size() / 4) << endl;
+      cout << "fill failed; retrying " << (i+1) << " " << (100.0 * i / dt.data_.size() / 4) << endl;
       goto redo;
     }
   }
@@ -98,14 +98,22 @@ redo:
 
   Rainbow<uint64_t, kTagBits> r(dt.data_.size() - 1, v, x, y, z);
   auto e = r.Extract();
-  vector<uint64_t> f(e.begin(), e.end());
-  sort(f.begin(), f.end());
+  bool ok = true;
+  for (auto i : e) {
+    if (i >= current_pop) {
+      cout << "invalid extraction " << i << '\t' << current_pop << endl;
+      ok = false;
+    }
+  }
+  //vector<uint64_t> f(e.begin(), e.end());
+  //sort(f.begin(), f.end());
 
   cout << "f_b = " << kTagBits << "\t";
   cout << "recovered " << 100.0 * e.size() / current_pop << "%\t";
   cout << "unrecovered " << 100.0 - 100.0 * e.size() / current_pop << "%\t";
   cout << "positives " << vv.size() << "\t";
   cout << "true pop = " << current_pop << endl;
+  if (not ok) throw "invalid";
 }
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
@@ -124,6 +132,9 @@ int main(int, char ** argv) {
     break;
   case 6:
     TestRecover<6>(1ul << 18, universe);
+    break;
+  case 7:
+    TestRecover<7>(1ul << 18, universe);
     break;
   case 8:
     TestRecover<8>(1ul << 18, universe);
