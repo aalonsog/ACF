@@ -106,10 +106,10 @@ struct Rainbow {
         if (unique) result.insert(ki);
       }
     }
-    cout << "extracted size " << result.size() << "\t";
+    // cout << "extracted size " << result.size() << "\t";
     size_t erased = 0;
     for (auto& x : blocklist) erased += result.erase(x);
-    cout << "blocklist.size() " << blocklist.size() << "\t";
+    // cout << "blocklist.size() " << blocklist.size() << "\t";
     // cout << "erased " << erased << "\t";
     // cout << "blocklist support " << blocklist_support.size() << "\t";
     // size_t heaviest_bucket = 0;
@@ -120,3 +120,91 @@ struct Rainbow {
     return result;
   }
 };
+
+template <int W, int Alpha = 0>
+unordered_set<uint64_t> RainbowExtract(const DebugTable<uint64_t, W>& dt,
+                                       const vector<KeyCode<uint64_t>>& keys) {
+  static_assert(W <= 32, "W <= 32");
+  uint64_t mask = dt.Capacity()/4-1;
+  // fingerprint -> index_into_filter -> index_into_key_vector
+  // TODO: should last one be a vector?
+  // TODO: key should be unsigned __int128?
+  unordered_map<uint64_t, unordered_map<uint64_t, unordered_set<uint64_t>>> table;
+  // index_into_filter -> (index_into_key_vector, fingerprint)
+  unordered_map<uint64_t, unordered_map<uint64_t, uint64_t>> filter_all_options;
+
+  MS64 hash_maker = dt.hash_maker_;
+  MS64 xor_maker = dt.xor_maker_;
+  auto fingerprinter = dt.print_makers_;
+
+  static_assert(W <= 16, "W <= 16");
+  constexpr uint64_t kFingerprintMask = (W == 16) ? -1ul : ((1ul << ((4 * W) % 64)) - 1);
+  if (mask & (mask + 1)) throw mask;
+  size_t n = keys.size();
+  for (uint64_t i = 0; i < n; ++i) {
+    const auto fingerprints = fingerprinter(keys[i].code) & kFingerprintMask;
+    for (uint64_t index : {hash_maker(keys[i].code) & mask,
+                           (hash_maker(keys[i].code) ^ xor_maker(keys[i].code)) & mask}) {
+      table[fingerprints][index].insert(i);
+      filter_all_options[index][i] = fingerprints;
+    }
+  }
+
+  unordered_set<uint64_t> blocklist;
+  unordered_map<uint64_t, uint64_t> blocklist_support;
+  for (auto& bucket : filter_all_options) {
+    if (bucket.second.size() > 4) {
+      for (int i = 0; i < 4; ++i) {
+        // fingerprint -> index_into_key_vector
+        unordered_map<uint64_t, unordered_set<uint64_t>> collisions;
+        for (auto& x : bucket.second) {
+          collisions[((1 << W) - 1) & ((x.second >> (W * i)))].insert(x.first);
+        }
+        for (auto& s : collisions) {
+          if (s.second.size() > 4) {
+            blocklist_support[bucket.first] = bucket.second.size();
+            blocklist.insert(s.second.begin(), s.second.end());
+            // for (auto& t : s.second) cerr << "blocklist " << t << endl;
+          }
+        }
+      }
+    }
+  }
+  unordered_set<uint64_t> result;
+  for (auto& bucket : table) {
+    for (auto& index_map : bucket.second) {
+      if (index_map.second.size() > 1) {
+        // for (auto& x : index_map.second) {
+        //   // cerr << "unrecoverable A " << x << endl;
+        // }
+        continue;
+      }
+      auto ki = *index_map.second.begin();
+      bool unique = true;
+      for (uint64_t index :
+           {hash_maker(keys[ki].code) & mask,
+            (hash_maker(keys[ki].code) ^ xor_maker(keys[ki].code)) & mask}) {
+        if (bucket.second.find(index)->second.size() > 1) {
+          // for (auto& x : bucket.second.find(index)->second) {
+          //   // cerr << "unrecoverable B " << x << endl;
+          // }
+          unique = false;
+          break;
+        }
+      }
+      if (unique) result.insert(ki);
+    }
+  }
+  // cout << "extracted size " << result.size() << "\t";
+  size_t erased = 0;
+  for (auto& x : blocklist) erased += result.erase(x);
+  // cout << "blocklist.size() " << blocklist.size() << "\t";
+  // cout << "erased " << erased << "\t";
+  // cout << "blocklist support " << blocklist_support.size() << "\t";
+  // size_t heaviest_bucket = 0;
+  // for (auto & i : blocklist_support) {
+  //   heaviest_bucket = max(heaviest_bucket, i.second);
+  // }
+  // cout << "heaviest support " << heaviest_bucket << "\t";
+  return result;
+}

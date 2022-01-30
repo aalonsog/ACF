@@ -25,7 +25,7 @@ string itoa(uint32_t i) {
 
 template <typename S, typename T>
 vector<T> GetPositives(S& dt, T universeBegin, T universeEnd) {
-  constexpr int kRepeats = 50;  // max(800 / W, 50);
+  constexpr int kRepeats = 100;  // max(800 / W, 50);
   vector<T> v;
   for (auto i = universeBegin; i != universeEnd; ++i) {
     auto finder = dt.AdaptiveFind(i->first, i->second);
@@ -60,7 +60,7 @@ struct Int64Iterator {
 };
 
 
-template <int kTagBits>
+template <int kTagBits, int Alpha>
 void TestRecover(const size_t kPopulation, size_t universe) {
 redo:
   auto /*w = MS128::FromDevice(), */
@@ -74,8 +74,8 @@ redo:
 
   DebugTable<uint64_t, kTagBits> dt(
       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
-  FourOne<uint64_t, kTagBits, 3> fo(
-      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
+  FourOne<uint64_t, kTagBits, Alpha> fo(
+      2ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
   for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
     try {
       dt.Insert(i, i);
@@ -104,10 +104,12 @@ redo:
   for (auto& xx : ww) w.push_back(KeyCode<uint64_t>{xx->first, xx->second});
 
   //cout << v.size() << endl;
-  Rainbow<uint64_t, kTagBits> s(dt.Capacity(), v, x, y, z);
-  RainbowFourOne<uint64_t> r(fo.Capacity(), w, xy, z);
-  auto e = s.Extract();
-  auto f = r.Extract();
+  // Rainbow<uint64_t, kTagBits> s(dt.Capacity(), v, x, y, z);
+  //  auto e = s.Extract();
+  auto e = RainbowExtract<kTagBits, Alpha>(dt, v);
+  //RainbowFourOne<uint64_t, kTagBits, Alpha> r(fo.Capacity(), w, xy, z);
+  //auto f = r.Extract();
+  auto f = RainbowExtract<kTagBits, Alpha>(fo, w);
   bool ok = true;
   for (auto i : e) {
     if (i >= current_pop) {
@@ -124,63 +126,123 @@ redo:
   //vector<uint64_t> f(e.begin(), e.end());
   //sort(f.begin(), f.end());
 
-  cout << "f_b = " << kTagBits << "\t";
-  cout << "recovered " << 100.0 * e.size() / current_pop << "%\t";
-  cout << "unrecovered " << 100.0 - 100.0 * e.size() / current_pop << "%\t";
-  cout << "positives " << vv.size() << "\t";
-  cout << "true pop = " << current_pop << endl;
-
-  cout << "f_b = " << kTagBits << "\t";
-  cout << "recovered " << 100.0 * f.size() / current_pop << "%\t";
-  cout << "unrecovered " << 100.0 - 100.0 * f.size() / current_pop << "%\t";
-  cout << "positives " << ww.size() << "\t";
-  cout << "true pop = " << current_pop << endl;
+  //cout << "f_b = " << kTagBits << "\t";
+  cout << "recovered_24,positives_24,truepop_24,recovered_41,positives_41,truepop_41\n";
+  cout << e.size() << ",";
+  cout << vv.size() << ",";
+  cout << current_pop << ",";
+  cout << f.size() << ",";
+  cout << ww.size() << ",";
+  cout << current_pop << endl;
   if (not ok) throw "invalid";
 }
+
+template <int kTagBits, int Alpha, typename T>
+void TestRecoverEither(T& dt, const size_t kPopulation, size_t universe) {
+redo:
+  // auto /*w = MS128::FromDevice(), */
+  //     x = MS64::FromDevice(),
+  //     y = MS64::FromDevice();
+  // MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
+  //               MS64::FromDevice()};
+  // auto z = MS128::FromDevice();
+  // uint64_t kMaxUniverse = 1ul << 25;
+  size_t current_pop = 0;
+
+  for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
+    try {
+      dt.Insert(i, i);
+      const double filled = 100.0 * i / dt.Capacity();
+      if (filled >= 95.0) {
+        // cout << "filled " << filled << '%' << endl;
+        current_pop = i + 1;
+        // cout << "kPopulation " << kPopulation << endl;
+        // cout << "dt.data_.size() " << dt.data_.size() << endl;
+        break;
+      }
+    } catch (...) {
+      // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
+      // // TODO: how to undo this?
+      // kPopulation = 1ul << 20;
+      cout << "fill failed; retrying " << (i+1) << " " << (100.0 * i / dt.Capacity()) << endl;
+      goto redo;
+    }
+  }
+
+  auto vv = GetPositives(dt, Int64Iterator(0), Int64Iterator(universe));
+  vector<KeyCode<uint64_t>> v, w;
+  for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+
+  auto e = RainbowExtract<kTagBits, Alpha>(dt, v);
+  bool ok = true;
+  for (auto i : e) {
+    if (i >= current_pop) {
+      //cout << "invalid extraction " << i << '\t' << current_pop << endl;
+      ok = false;
+    }
+  }
+  //vector<uint64_t> f(e.begin(), e.end());
+  //sort(f.begin(), f.end());
+
+  //cout << "f_b = " << kTagBits << "\t";
+  cout << e.size() << ",";
+  cout << vv.size() << ",";
+  cout.flush();
+  if (not ok) throw "invalid";
+}
+
+
+template <int kTagBits, int Alpha>
+void TestRecover24(const size_t kPopulation, size_t universe) {
+  auto x = MS64::FromDevice(), y = MS64::FromDevice();
+  auto z = MS128::FromDevice();
+  DebugTable<uint64_t, kTagBits> dt(
+      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+  return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+};
+
+template <int kTagBits, int Alpha>
+void TestRecover41(const size_t kPopulation, size_t universe) {
+  MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
+                MS64::FromDevice()};
+  auto z = MS128::FromDevice();
+  FourOne<uint64_t, kTagBits, Alpha> dt(
+      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
+  return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+};
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int, char ** argv) {
-  constexpr size_t universe = 1ul << 28;
+  constexpr size_t universe = 1ul << 20;
   istringstream s(argv[1]);
-  int f_b;
+  int f_b = 0;
   s >> f_b;
-  const unsigned long count = 1ul << 16;
+  const unsigned long count = 1ul << 17;
   switch (f_b) {
-  case 4:
-    TestRecover<4>(count, universe);
-    break;
-  case 5:
-    TestRecover<5>(count, universe);
-    break;
-  case 6:
-    TestRecover<6>(count, universe);
-    break;
-  case 7:
-    TestRecover<7>(count, universe);
-    break;
-  case 8:
-    TestRecover<8>(count, universe);
-    break;
-  case 10:
-    TestRecover<10>(count, universe);
-    break;
-  case 12:
-    TestRecover<12>(count, universe);
-    break;
-  case 14:
-    TestRecover<14>(count, universe);
-    break;
-  case 15:
-    TestRecover<15>(count, universe);
-    break;
-  case 16:
-    TestRecover<16>(count, universe);
-    break;
-  // case 17:
-  //   TestRecover<17>(count, universe);
-  //   break;
-  default:
-    throw 0;
+#define effbee(F_B)                                                           \
+  case F_B:                                                                   \
+    TestRecover<F_B, 1>(count, universe);                                     \
+    return 0;                                                                 \
+    cout << "recovered24,positives24,recovered411,positives411,recovered412," \
+            "positives412,recovered413,positives413"                          \
+         << endl;                                                             \
+    TestRecover24<F_B, 0>(count, universe);                                   \
+    TestRecover41<F_B, 1>(count, universe);                                   \
+    TestRecover41<F_B, 2>(count, universe);                                   \
+    TestRecover41<F_B, 3>(count, universe);                                   \
+    cout << endl;                                                             \
+    return 0;
+
+    effbee(4);
+    effbee(6);
+    effbee(8);
+    effbee(10);
+    effbee(12);
+    effbee(14);
+    effbee(16);
+
+    default:
+      throw 0;
   }
 }
