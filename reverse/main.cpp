@@ -3,15 +3,16 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "rainbow.hpp"
 #include "four-one.hpp"
 #include "rainbow-four-one.hpp"
+#include "rainbow.hpp"
 
 string itoa(uint32_t i) {
   if (0 == i) return "0";
@@ -61,82 +62,83 @@ struct Int64Iterator {
 };
 
 
-template <int kTagBits, int Alpha>
-void TestRecover(const size_t kPopulation, size_t universe) {
-redo:
-  auto /*w = MS128::FromDevice(), */
-      x = MS64::FromDevice(),
-      y = MS64::FromDevice();
-  MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
-                MS64::FromDevice()};
-  auto z = MS128::FromDevice();
-  // uint64_t kMaxUniverse = 1ul << 25;
-  size_t current_pop = 0;
+// template <int kTagBits, int Alpha>
+// void TestRecover(const size_t kPopulation, size_t universe) {
+// redo:
+//   auto /*w = MS128::FromDevice(), */
+//       x = MS64::FromDevice(),
+//       y = MS64::FromDevice();
+//   MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
+//                 MS64::FromDevice()};
+//   auto z = MS128::FromDevice();
+//   // uint64_t kMaxUniverse = 1ul << 25;
+//   size_t current_pop = 0;
 
-  DebugTable<uint64_t, kTagBits> dt(
-      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
-  FourOne<uint64_t, kTagBits, Alpha> fo(
-      2ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
-  for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
-    try {
-      dt.Insert(i, i);
-      fo.Insert(i, i);
-      const double filled = 100.0 * i / dt.Capacity();
-      if (filled >= 95.0) {
-        // cout << "filled " << filled << '%' << endl;
-        current_pop = i + 1;
-        // cout << "kPopulation " << kPopulation << endl;
-        // cout << "dt.data_.size() " << dt.data_.size() << endl;
-        break;
-      }
-    } catch (...) {
-      // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
-      // // TODO: how to undo this?
-      // kPopulation = 1ul << 20;
-      cout << "fill failed; retrying " << (i+1) << " " << (100.0 * i / dt.Capacity()) << endl;
-      goto redo;
-    }
-  }
+//   DebugTable<uint64_t, kTagBits> dt(
+//       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+//   FourOne<uint64_t, kTagBits, Alpha> fo(
+//       2ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
+//   for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
+//     try {
+//       dt.Insert(i, i);
+//       fo.Insert(i, i);
+//       const double filled = 100.0 * i / dt.Capacity();
+//       if (filled >= 95.0) {
+//         // cout << "filled " << filled << '%' << endl;
+//         current_pop = i + 1;
+//         // cout << "kPopulation " << kPopulation << endl;
+//         // cout << "dt.data_.size() " << dt.data_.size() << endl;
+//         break;
+//       }
+//     } catch (...) {
+//       // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
+//       // // TODO: how to undo this?
+//       // kPopulation = 1ul << 20;
+//       cout << "fill failed; retrying " << (i+1) << " " << (100.0 * i / dt.Capacity()) << endl;
+//       throw 'r';
+//       goto redo;
+//     }
+//   }
 
-  auto vv = GetPositives(dt, Int64Iterator(0), Int64Iterator(universe));
-  auto ww = GetPositives(fo, Int64Iterator(0), Int64Iterator(universe));
-  vector<KeyCode<uint64_t>> v, w;
-  for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
-  for (auto& xx : ww) w.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+//   auto vv = GetPositives(dt, Int64Iterator(0), Int64Iterator(universe));
+//   auto ww = GetPositives(fo, Int64Iterator(0), Int64Iterator(universe));
+//   vector<KeyCode<uint64_t>> v, w;
+//   for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+//   for (auto& xx : ww) w.push_back(KeyCode<uint64_t>{xx->first, xx->second});
 
-  //cout << v.size() << endl;
-  // Rainbow<uint64_t, kTagBits> s(dt.Capacity(), v, x, y, z);
-  //  auto e = s.Extract();
-  auto e = RainbowExtract<kTagBits, Alpha>(dt, v);
-  //RainbowFourOne<uint64_t, kTagBits, Alpha> r(fo.Capacity(), w, xy, z);
-  //auto f = r.Extract();
-  auto f = RainbowExtract<kTagBits, Alpha>(fo, w);
-  bool ok = true;
-  for (auto i : e) {
-    if (i >= current_pop) {
-      //cout << "invalid extraction " << i << '\t' << current_pop << endl;
-      ok = false;
-    }
-  }
-  for (auto i : f) {
-    if (i >= current_pop) {
-      //cout << "invalid extraction " << i << '\t' << current_pop << endl;
-      ok = false;
-    }
-  }
-  //vector<uint64_t> f(e.begin(), e.end());
-  //sort(f.begin(), f.end());
+//   //cout << v.size() << endl;
+//   // Rainbow<uint64_t, kTagBits> s(dt.Capacity(), v, x, y, z);
+//   //  auto e = s.Extract();
+//   auto e = RainbowExtract<kTagBits, Alpha>(dt, v);
+//   //RainbowFourOne<uint64_t, kTagBits, Alpha> r(fo.Capacity(), w, xy, z);
+//   //auto f = r.Extract();
+//   auto f = RainbowExtract<kTagBits, Alpha>(fo, w);
+//   bool ok = true;
+//   for (auto i : e) {
+//     if (i >= current_pop) {
+//       //cout << "invalid extraction " << i << '\t' << current_pop << endl;
+//       ok = false;
+//     }
+//   }
+//   for (auto i : f) {
+//     if (i >= current_pop) {
+//       //cout << "invalid extraction " << i << '\t' << current_pop << endl;
+//       ok = false;
+//     }
+//   }
+//   //vector<uint64_t> f(e.begin(), e.end());
+//   //sort(f.begin(), f.end());
 
-  //cout << "f_b = " << kTagBits << "\t";
-  cout << "recovered_24,positives_24,truepop_24,recovered_41,positives_41,truepop_41\n";
-  cout << e.size() << ",";
-  cout << vv.size() << ",";
-  cout << current_pop << ",";
-  cout << f.size() << ",";
-  cout << ww.size() << ",";
-  cout << current_pop << endl;
-  if (not ok) throw "invalid";
-}
+//   //cout << "f_b = " << kTagBits << "\t";
+//   cout << "recovered_24,positives_24,truepop_24,recovered_41,positives_41,truepop_41\n";
+//   cout << e.size() << ",";
+//   cout << vv.size() << ",";
+//   cout << current_pop << ",";
+//   cout << f.size() << ",";
+//   cout << ww.size() << ",";
+//   cout << current_pop << endl;
+//   if (not ok) throw "invalid";
+// }
 
 template <int kTagBits, int Alpha, typename T>
 size_t TestRecoverEither(T& dt, const size_t kPopulation, size_t universe) {
@@ -166,6 +168,7 @@ redo:
       // // TODO: how to undo this?
       // kPopulation = 1ul << 20;
       cout << "fill failed; retrying " << (i+1) << " " << (100.0 * i / dt.Capacity()) << endl;
+      throw 'r';
       goto redo;
     }
   }
@@ -189,7 +192,7 @@ redo:
   cout << e.size() << ",";
   cout << vv.size() << ",";
   cout.flush();
-  if (not ok) throw "invalid";
+  if (not is_same<DebugTable<uint64_t, kTagBits>, T>::value) if (not ok) throw "invalid";
   return current_pop;
 }
 
@@ -215,7 +218,7 @@ size_t TestRecover41(const size_t kPopulation, size_t universe) {
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int, char ** argv) {
-  constexpr size_t universe = 1ul << 20;
+  constexpr size_t universe = 1ul << 32;
   istringstream s(argv[1]);
   int f_b = 0;
   s >> f_b;
