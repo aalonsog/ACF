@@ -1,3 +1,5 @@
+#pragma once
+
 // Performs key inference on an adaptive cuckoo filter
 
 #include <cstdint>
@@ -40,9 +42,9 @@ struct Rainbow {
   MS64 xor_maker;
 
   template <typename U>
-  Rainbow(uint64_t mask, const vector<KeyCode<T>>& keys, MS64 hash_maker, MS64 xor_maker,
-          U fingerprinter)
-      : mask(mask), keys(keys), hash_maker(hash_maker), xor_maker(xor_maker) {
+  Rainbow(uint64_t capacity, const vector<KeyCode<T>>& keys, MS64 hash_maker,
+          MS64 xor_maker, U fingerprinter)
+      : mask(capacity / 4 - 1), keys(keys), hash_maker(hash_maker), xor_maker(xor_maker) {
     static_assert(W <= 16, "W <= 16");
     constexpr uint64_t kFingerprintMask = (W == 16) ? -1ul : ((1ul << ((4 * W) % 64)) - 1);
     if (mask & (mask + 1)) throw mask;

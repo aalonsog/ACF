@@ -1,9 +1,12 @@
+#pragma once
+
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -77,6 +80,8 @@ struct DebugTable {
   MS64 xor_maker_;
   MS128 print_makers_;
 
+  size_t Capacity() const { return data_.size() * 4; }
+
   DebugTable(size_t bucket_count, MS64 hash_maker, MS64 xor_maker, MS128 print_makers)
       : data_(bucket_count),
         hash_maker_(hash_maker),
@@ -89,6 +94,7 @@ struct DebugTable {
   void Insert(Z key, uint64_t code) {
     auto hash = hash_maker_(code) & (data_.size() - 1);
     int ttl = 500;
+    random_device d;
     while (true) {
       for (int j = 0; j < 4; ++j) {
         if (data_[hash][j].full) {
@@ -102,7 +108,7 @@ struct DebugTable {
         data_[hash][j].full = true;
         return;
       }
-      int i = rand() % 4;
+      int i = d() % 4;
       using std::swap;
       swap(key, data_[hash][i].back);
       swap(code, data_[hash][i].code);
