@@ -72,13 +72,14 @@ redo:
   // uint64_t kMaxUniverse = 1ul << 25;
   size_t current_pop = 0;
 
-  // DebugTable<uint64_t, kTagBits> dt(
-  //     1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
-  FourOne<uint64_t, kTagBits, 3> dt(
+  DebugTable<uint64_t, kTagBits> dt(
+      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+  FourOne<uint64_t, kTagBits, 3> fo(
       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
   for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
     try {
       dt.Insert(i, i);
+      fo.Insert(i, i);
       const double filled = 100.0 * i / dt.Capacity();
       if (filled >= 95.0) {
         // cout << "filled " << filled << '%' << endl;
@@ -97,15 +98,24 @@ redo:
   }
 
   auto vv = GetPositives(dt, Int64Iterator(0), Int64Iterator(universe));
-  vector<KeyCode<uint64_t>> v;
-  for (auto& ww : vv) {
-    v.push_back(KeyCode<uint64_t>{ww->first, ww->second});
-  }
+  auto ww = GetPositives(fo, Int64Iterator(0), Int64Iterator(universe));
+  vector<KeyCode<uint64_t>> v, w;
+  for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+  for (auto& xx : ww) w.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+
   //cout << v.size() << endl;
-  RainbowFourOne<uint64_t> r(dt.Capacity(), v, xy, z);
-  auto e = r.Extract();
+  Rainbow<uint64_t, kTagBits> s(dt.Capacity(), v, x, y, z);
+  RainbowFourOne<uint64_t> r(fo.Capacity(), w, xy, z);
+  auto e = s.Extract();
+  auto f = r.Extract();
   bool ok = true;
   for (auto i : e) {
+    if (i >= current_pop) {
+      //cout << "invalid extraction " << i << '\t' << current_pop << endl;
+      ok = false;
+    }
+  }
+  for (auto i : f) {
     if (i >= current_pop) {
       //cout << "invalid extraction " << i << '\t' << current_pop << endl;
       ok = false;
@@ -118,6 +128,12 @@ redo:
   cout << "recovered " << 100.0 * e.size() / current_pop << "%\t";
   cout << "unrecovered " << 100.0 - 100.0 * e.size() / current_pop << "%\t";
   cout << "positives " << vv.size() << "\t";
+  cout << "true pop = " << current_pop << endl;
+
+  cout << "f_b = " << kTagBits << "\t";
+  cout << "recovered " << 100.0 * f.size() / current_pop << "%\t";
+  cout << "unrecovered " << 100.0 - 100.0 * f.size() / current_pop << "%\t";
+  cout << "positives " << ww.size() << "\t";
   cout << "true pop = " << current_pop << endl;
   if (not ok) throw "invalid";
 }
