@@ -58,7 +58,7 @@ struct FourOne {
   }
 
   enum Found { TrueNegative = 0, TruePositive = 1, FalsePositive = 2 };
-  Found AdaptiveFind(const Z& key, uint64_t code) {
+  Found AdaptiveFind(Z key, uint64_t code) {
     auto result = TrueNegative;
     for (int i = 0; i < 4; ++i) {
       auto hash = hash_makers_[i](code) & (data_[i].size() - 1);
@@ -70,7 +70,7 @@ struct FourOne {
         if (key == data_[i][hash].back) return TruePositive;
         result = FalsePositive;
         data_[i][hash].alpha += 1;
-        data_[i][hash].alpha = data_[i][hash].alpha % ((1 << S) - 1);
+        data_[i][hash].alpha = data_[i][hash].alpha & ((1 << S) - 1);
         data_[i][hash].fingerprint =
           print_maker_(data_[i][hash].code) >> (data_[i][hash].alpha * W);
       }

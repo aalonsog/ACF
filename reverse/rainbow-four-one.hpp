@@ -63,7 +63,7 @@ struct RainbowFourOne {
 };
 
 template <int W, int Alpha>
-unordered_set<uint64_t> RainbowExtract(const FourOne<uint64_t, W, Alpha>& dt,
+unordered_set<uint64_t> RainbowExtract(FourOne<uint64_t, W, Alpha>& dt,
                                        const vector<KeyCode<uint64_t>>& keys) {
   unordered_map<unsigned __int128, unordered_map<uint64_t, uint64_t>> prints_to_code_to_index_;
   uint64_t mask_ = dt.Capacity() / 4 - 1;

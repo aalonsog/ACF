@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -25,7 +26,7 @@ string itoa(uint32_t i) {
 
 template <typename S, typename T>
 vector<T> GetPositives(S& dt, T universeBegin, T universeEnd) {
-  constexpr int kRepeats = 100;  // max(800 / W, 50);
+  constexpr int kRepeats = 500;  // max(800 / W, 50);
   vector<T> v;
   for (auto i = universeBegin; i != universeEnd; ++i) {
     auto finder = dt.AdaptiveFind(i->first, i->second);
@@ -138,7 +139,7 @@ redo:
 }
 
 template <int kTagBits, int Alpha, typename T>
-void TestRecoverEither(T& dt, const size_t kPopulation, size_t universe) {
+size_t TestRecoverEither(T& dt, const size_t kPopulation, size_t universe) {
 redo:
   // auto /*w = MS128::FromDevice(), */
   //     x = MS64::FromDevice(),
@@ -189,11 +190,11 @@ redo:
   cout << vv.size() << ",";
   cout.flush();
   if (not ok) throw "invalid";
+  return current_pop;
 }
 
-
 template <int kTagBits, int Alpha>
-void TestRecover24(const size_t kPopulation, size_t universe) {
+size_t TestRecover24(const size_t kPopulation, size_t universe) {
   auto x = MS64::FromDevice(), y = MS64::FromDevice();
   auto z = MS128::FromDevice();
   DebugTable<uint64_t, kTagBits> dt(
@@ -202,7 +203,7 @@ void TestRecover24(const size_t kPopulation, size_t universe) {
 };
 
 template <int kTagBits, int Alpha>
-void TestRecover41(const size_t kPopulation, size_t universe) {
+size_t TestRecover41(const size_t kPopulation, size_t universe) {
   MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
                 MS64::FromDevice()};
   auto z = MS128::FromDevice();
@@ -222,15 +223,15 @@ int main(int, char ** argv) {
   switch (f_b) {
 #define effbee(F_B)                                                           \
   case F_B:                                                                   \
-    TestRecover<F_B, 1>(count, universe);                                     \
-    return 0;                                                                 \
+    /*TestRecover<F_B, 1>(count, universe);*/                                 \
+    /*return 0;*/                                                             \
     cout << "recovered24,positives24,recovered411,positives411,recovered412," \
-            "positives412,recovered413,positives413"                          \
+            "positives412,recovered413,positives413,fill_count"               \
          << endl;                                                             \
     TestRecover24<F_B, 0>(count, universe);                                   \
     TestRecover41<F_B, 1>(count, universe);                                   \
     TestRecover41<F_B, 2>(count, universe);                                   \
-    TestRecover41<F_B, 3>(count, universe);                                   \
+    cout << TestRecover41<F_B, 3>(count, universe);                           \
     cout << endl;                                                             \
     return 0;
 
