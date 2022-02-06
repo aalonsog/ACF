@@ -239,11 +239,17 @@ int main(int, char ** argv) {
     return 0;
 
     effbee(4);
+    effbee(5);
     effbee(6);
+    effbee(7);
     effbee(8);
+    effbee(9);
     effbee(10);
+    effbee(11);
     effbee(12);
+    effbee(13);
     effbee(14);
+    effbee(15);
     effbee(16);
 
     default:
