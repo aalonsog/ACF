@@ -65,7 +65,7 @@ struct MS128 {
 };
 
 
-template<typename Z, int W>
+template<typename Z, int W, typename H>
 struct DebugTable {
   static_assert(W <= 32, "W <= 32");
   struct Slot {
@@ -79,19 +79,22 @@ struct DebugTable {
   MS64 hash_maker_;
   MS64 xor_maker_;
   MS128 print_makers_;
+  H h;
 
   size_t Capacity() const { return data_.size() * 4; }
 
-  DebugTable(size_t bucket_count, MS64 hash_maker, MS64 xor_maker, MS128 print_makers)
+  DebugTable(const H& h, size_t bucket_count, MS64 hash_maker, MS64 xor_maker, MS128 print_makers)
       : data_(bucket_count),
         hash_maker_(hash_maker),
         xor_maker_(xor_maker),
-        print_makers_(print_makers) {
+        print_makers_(print_makers),
+        h(h) {
     if (0 != (bucket_count & (bucket_count - 1))) throw bucket_count;
     srand(0);
   }
 
   void Insert(Z key, uint64_t code) {
+    code = h(code);
     auto hash = hash_maker_(code) & (data_.size() - 1);
     int ttl = 500;
     random_device d;
@@ -123,6 +126,7 @@ struct DebugTable {
 
   enum Found { TrueNegative = 0, TruePositive = 1, FalsePositive = 2 };
   Found AdaptiveFind(const Z& key, uint64_t code) {
+    code = h(code);
     bool debug = false;
     // if (code == 985567 or code == 995618) {
     //   debug = false;

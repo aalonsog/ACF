@@ -8,7 +8,7 @@ using namespace std;
 
 #include "debug-table.hpp"
 
-template<typename Z, int W, int S>
+template<typename Z, int W, int S, typename H>
 struct FourOne {
   struct Slot {
     bool full = false;
@@ -21,18 +21,21 @@ struct FourOne {
   vector<Slot> data_[4];
   MS64 hash_makers_[4];
   MS128 print_maker_;
+  H h;
 
   size_t Capacity() const { return data_[0].size() * 4; }
 
-  FourOne(size_t bucket_count, const MS64 hash_makers[4], MS128 print_maker)
+  FourOne(H h, size_t bucket_count, const MS64 hash_makers[4], MS128 print_maker)
       : data_{vector<Slot>{bucket_count}, vector<Slot>{bucket_count},
               vector<Slot>{bucket_count}, vector<Slot>{bucket_count}},
         hash_makers_{hash_makers[0], hash_makers[1], hash_makers[2], hash_makers[3]},
-        print_maker_(print_maker) {
+        print_maker_(print_maker),
+        h(h) {
     if (0 != (bucket_count & (bucket_count - 1))) throw bucket_count;
   }
 
   void Insert(Z key, uint64_t code) {
+    code = h(code);
     int ttl = 500;
     for (int j = 0; true; j = ((j + 1) % 4)) {
       auto hash = hash_makers_[j](code) & (data_[j].size() - 1);
@@ -59,6 +62,7 @@ struct FourOne {
 
   enum Found { TrueNegative = 0, TruePositive = 1, FalsePositive = 2 };
   Found AdaptiveFind(Z key, uint64_t code) {
+    code = h(code);
     auto result = TrueNegative;
     for (int i = 0; i < 4; ++i) {
       auto hash = hash_makers_[i](code) & (data_[i].size() - 1);

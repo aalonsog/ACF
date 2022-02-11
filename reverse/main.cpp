@@ -150,6 +150,10 @@ redo:
   //               MS64::FromDevice()};
   // auto z = MS128::FromDevice();
   // uint64_t kMaxUniverse = 1ul << 25;
+
+  // auto h = [](uint32_t x) { return x / 2; };
+  // auto h = [](uint32_t x) { return x; };
+
   size_t current_pop = 0;
 
   for (uint32_t i = 0; i < 100 * kPopulation; ++i) {
@@ -177,7 +181,7 @@ redo:
   vector<KeyCode<uint64_t>> v, w;
   for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
 
-  auto e = RainbowExtract<kTagBits, Alpha>(dt, v);
+  auto e = RainbowExtract<kTagBits, decltype(dt.h), Alpha>(dt, v);
   bool ok = true;
   for (auto i : e) {
     if (i >= current_pop) {
@@ -185,6 +189,7 @@ redo:
       ok = false;
     }
   }
+  (void)ok;
   //vector<uint64_t> f(e.begin(), e.end());
   //sort(f.begin(), f.end());
 
@@ -192,7 +197,9 @@ redo:
   cout << e.size() << ",";
   cout << vv.size() << ",";
   cout.flush();
-  if (not is_same<DebugTable<uint64_t, kTagBits>, T>::value) if (not ok) throw "invalid";
+  if (not is_same<DebugTable<uint64_t, kTagBits, decltype(dt.h)>, T>::value) {
+    //if (not ok) throw "invalid";
+  }
   return current_pop;
 }
 
@@ -200,7 +207,8 @@ template <int kTagBits, int Alpha>
 size_t TestRecover24(const size_t kPopulation, size_t universe) {
   auto x = MS64::FromDevice(), y = MS64::FromDevice();
   auto z = MS128::FromDevice();
-  DebugTable<uint64_t, kTagBits> dt(
+  auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
+  DebugTable<uint64_t, kTagBits, decltype(h)> dt(h,
       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
   return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
 };
@@ -210,7 +218,8 @@ size_t TestRecover41(const size_t kPopulation, size_t universe) {
   MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
                 MS64::FromDevice()};
   auto z = MS128::FromDevice();
-  FourOne<uint64_t, kTagBits, Alpha> dt(
+  auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
+  FourOne<uint64_t, kTagBits, Alpha, decltype(h)> dt(h,
       1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
   return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
 };
@@ -222,7 +231,7 @@ int main(int, char ** argv) {
   istringstream s(argv[1]);
   int f_b = 0;
   s >> f_b;
-  const unsigned long count = 1ul << 17;
+  const unsigned long count = 1ul << 14;
   switch (f_b) {
 #define effbee(F_B)                                                           \
   case F_B:                                                                   \

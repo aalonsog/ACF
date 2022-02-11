@@ -121,11 +121,11 @@ struct Rainbow {
   }
 };
 
-template <int W, int Alpha = 0>
-unordered_set<uint64_t> RainbowExtract(const DebugTable<uint64_t, W>& dt,
-                                       const vector<KeyCode<uint64_t>>& keys) {
+template <int W, typename H, int Alpha = 0>
+unordered_set<uint64_t> RainbowExtract(const DebugTable<uint64_t, W, H>& dt,
+                                       vector<KeyCode<uint64_t>>& keys) {
   static_assert(W <= 32, "W <= 32");
-  uint64_t mask = dt.Capacity()/4-1;
+  uint64_t mask = dt.Capacity() / 4 - 1;
   // fingerprint -> index_into_filter -> index_into_key_vector
   // TODO: should last one be a vector?
   // TODO: key should be unsigned __int128?
@@ -141,6 +141,7 @@ unordered_set<uint64_t> RainbowExtract(const DebugTable<uint64_t, W>& dt,
   constexpr uint64_t kFingerprintMask = (W == 16) ? -1ul : ((1ul << ((4 * W) % 64)) - 1);
   if (mask & (mask + 1)) throw mask;
   size_t n = keys.size();
+  for (uint64_t i = 0; i < n; ++i) keys[i].code = dt.h(keys[i].code);
   for (uint64_t i = 0; i < n; ++i) {
     const auto fingerprints = fingerprinter(keys[i].code) & kFingerprintMask;
     for (uint64_t index : {hash_maker(keys[i].code) & mask,
