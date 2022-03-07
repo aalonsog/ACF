@@ -64,6 +64,25 @@ struct MS128 {
   }
 };
 
+struct LazyTabHash {
+  vector<array<uint64_t, 8>> seed;
+  uint64_t operator()(char* x, size_t n) {
+    while (seed.size() < n) {
+      random_device d;
+      seed.push_back({});
+      for (size_t i = 0; i < 256; ++i) {
+        seed.back()[i] = d();
+        seed.back()[i] |= static_cast<uint64_t>(d()) << 32;
+      }
+    }
+    uint64_t result = 0;
+    for (size_t i = 0; i < n; ++i) {
+      result ^= seed[i][x[i]];
+    }
+    return result;
+  }
+};
+
 
 template<typename Z, int W, typename H>
 struct DebugTable {

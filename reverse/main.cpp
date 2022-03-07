@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "four-one.hpp"
@@ -26,14 +27,16 @@ string itoa(uint32_t i) {
 }
 
 template <typename S, typename T>
-vector<T> GetPositives(S& dt, T universeBegin, T universeEnd) {
+pair<vector<T>, size_t> GetPositives(S& dt, T universeBegin, T universeEnd) {
   constexpr int kRepeats = 500;  // max(800 / W, 50);
   vector<T> v;
+  size_t fpp = 0;
   for (auto i = universeBegin; i != universeEnd; ++i) {
     auto finder = dt.AdaptiveFind(i->first, i->second);
     if (finder != S::TrueNegative) {
       bool found = true;
       if (finder == S::FalsePositive) {
+        ++fpp;
         for (int j = 0; j < kRepeats; ++j) {
           auto inner_finder = dt.AdaptiveFind(i->first, i->second);
           if (inner_finder == S::TruePositive) break;
@@ -46,7 +49,7 @@ vector<T> GetPositives(S& dt, T universeBegin, T universeEnd) {
       if (found) v.push_back(i);
     }
   }
-  return v;
+  return {v, fpp};
 }
 
 struct Int64Iterator {
@@ -179,7 +182,7 @@ redo:
 
   auto vv = GetPositives(dt, Int64Iterator(0), Int64Iterator(universe));
   vector<KeyCode<uint64_t>> v, w;
-  for (auto& xx : vv) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
+  for (auto& xx : vv.first) v.push_back(KeyCode<uint64_t>{xx->first, xx->second});
 
   auto e = RainbowExtract<kTagBits, decltype(dt.h), Alpha>(dt, v);
   bool ok = true;
@@ -195,7 +198,8 @@ redo:
 
   //cout << "f_b = " << kTagBits << "\t";
   cout << e.size() << ",";
-  cout << vv.size() << ",";
+  cout << vv.first.size() << ",";
+  cout << vv.second * 100.0 / (universe - current_pop) << ",";
   cout.flush();
   if (not is_same<DebugTable<uint64_t, kTagBits, decltype(dt.h)>, T>::value) {
     //if (not ok) throw "invalid";
@@ -203,48 +207,61 @@ redo:
   return current_pop;
 }
 
-template <int kTagBits, int Alpha>
+template <int kTagBits, int Alpha, bool protect>
 size_t TestRecover24(const size_t kPopulation, size_t universe) {
   auto x = MS64::FromDevice(), y = MS64::FromDevice();
   auto z = MS128::FromDevice();
   auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
-  DebugTable<uint64_t, kTagBits, decltype(h)> dt(h,
-      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
-  return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  auto g = [](uint32_t x) { return x; };
+  if (protect) {
+    DebugTable<uint64_t, kTagBits, decltype(h)> dt(
+        h, 1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+    return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  } else {
+    DebugTable<uint64_t, kTagBits, decltype(g)> dt(
+        g, 1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), x, y, z);
+    return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  }
 };
 
-template <int kTagBits, int Alpha>
+template <int kTagBits, int Alpha, bool protect>
 size_t TestRecover41(const size_t kPopulation, size_t universe) {
   MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
                 MS64::FromDevice()};
   auto z = MS128::FromDevice();
   auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
-  FourOne<uint64_t, kTagBits, Alpha, decltype(h)> dt(h,
-      1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
-  return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  auto g = [](uint32_t x) { return x; };
+  if (protect) {
+    FourOne<uint64_t, kTagBits, Alpha, decltype(h)> dt(
+        h, 1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
+    return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  } else {
+    FourOne<uint64_t, kTagBits, Alpha, decltype(g)> dt(
+        g, 1ul << static_cast<int>(ceil(log2(max(2.0, 1.5 * kPopulation / 4)))), xy, z);
+    return TestRecoverEither<kTagBits, Alpha>(dt, kPopulation, universe);
+  }
 };
 
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int, char ** argv) {
+  constexpr bool protect = true;
   constexpr size_t universe = 1ul << 32;
   istringstream s(argv[1]);
   int f_b = 0;
   s >> f_b;
   const unsigned long count = 1ul << 14;
+  cout << "recovered24,positives24,fpp24,recovered411,positives411,fpp411,recovered412,"
+          "positives412,fpp412,recovered413,positives413,fpp412,fill_count"
+       << endl;
   switch (f_b) {
-#define effbee(F_B)                                                           \
-  case F_B:                                                                   \
-    /*TestRecover<F_B, 1>(count, universe);*/                                 \
-    /*return 0;*/                                                             \
-    cout << "recovered24,positives24,recovered411,positives411,recovered412," \
-            "positives412,recovered413,positives413,fill_count"               \
-         << endl;                                                             \
-    TestRecover24<F_B, 0>(count, universe);                                   \
-    TestRecover41<F_B, 1>(count, universe);                                   \
-    TestRecover41<F_B, 2>(count, universe);                                   \
-    cout << TestRecover41<F_B, 3>(count, universe);                           \
-    cout << endl;                                                             \
+#define effbee(F_B)                                          \
+  case F_B:                                                  \
+    TestRecover24<F_B, 0, protect>(count, universe);         \
+    TestRecover41<F_B, 1, protect>(count, universe);         \
+    TestRecover41<F_B, 2, protect>(count, universe);         \
+    cout << TestRecover41<F_B, 3, protect>(count, universe); \
+    cout << endl;                                            \
     return 0;
 
     effbee(4);
