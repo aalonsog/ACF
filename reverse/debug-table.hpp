@@ -65,8 +65,8 @@ struct MS128 {
 };
 
 struct LazyTabHash {
-  vector<array<uint64_t, 8>> seed;
-  uint64_t operator()(char* x, size_t n) {
+  vector<array<uint64_t, 256>> seed;
+  uint64_t operator()(const char* x, size_t n) {
     while (seed.size() < n) {
       random_device d;
       seed.push_back({});
@@ -77,7 +77,7 @@ struct LazyTabHash {
     }
     uint64_t result = 0;
     for (size_t i = 0; i < n; ++i) {
-      result ^= seed[i][x[i]];
+      result ^= seed[i][x[i] & 0xff];
     }
     return result;
   }
@@ -113,6 +113,7 @@ struct DebugTable {
   }
 
   void Insert(Z key, uint64_t code) {
+    // cout << key << " " << code << endl;
     code = h(code);
     auto hash = hash_maker_(code) & (data_.size() - 1);
     int ttl = 500;

@@ -121,9 +121,9 @@ struct Rainbow {
   }
 };
 
-template <int W, typename H, int Alpha = 0>
-unordered_set<uint64_t> RainbowExtract(const DebugTable<uint64_t, W, H>& dt,
-                                       vector<KeyCode<uint64_t>>& keys) {
+template <int W, typename H, typename U, int Alpha = 0>
+unordered_set<uint64_t> RainbowExtract(const DebugTable<U, W, H>& dt,
+                                       vector<KeyCode<U>>& keys) {
   static_assert(W <= 32, "W <= 32");
   uint64_t mask = dt.Capacity() / 4 - 1;
   // fingerprint -> index_into_filter -> index_into_key_vector

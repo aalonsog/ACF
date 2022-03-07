@@ -69,9 +69,9 @@ string ShowHex128(unsigned __int128 x) {
   return os.str();
 }
 
-template <int W, typename H, int Alpha>
-unordered_set<uint64_t> RainbowExtract(FourOne<uint64_t, W, Alpha, H>& dt,
-                                       vector<KeyCode<uint64_t>>& keys) {
+template <int W, typename H, typename U, int Alpha>
+unordered_set<uint64_t> RainbowExtract(FourOne<U, W, Alpha, H>& dt,
+                                       vector<KeyCode<U>>& keys) {
   unordered_map<unsigned __int128, unordered_map<uint64_t, uint64_t>> prints_to_code_to_index_;
   uint64_t mask_ = dt.Capacity() / 4 - 1;
   const MS64 hash_makers_[4] = {dt.hash_makers_[0], dt.hash_makers_[1],
