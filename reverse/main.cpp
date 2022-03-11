@@ -148,11 +148,13 @@ size_t TestRecover24(const size_t kPopulation, size_t universe) {
   }
 };
 
+int lexiShift = 11;
+
 template <int kTagBits, int Alpha, bool protect>
 size_t TestRecover24(const size_t kPopulation, vector<pair<string, size_t>> lexicon) {
   auto x = MS64::FromDevice(), y = MS64::FromDevice();
   auto z = MS128::FromDevice();
-  auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
+  auto h = [](uint32_t x) { return (0x87ad153f * x) >> lexiShift; };
   auto g = [](uint32_t x) { return x; };
   if (protect) {
     DebugTable<string, kTagBits, decltype(h)> dt(
@@ -192,7 +194,7 @@ size_t TestRecover41(const size_t kPopulation,  vector<pair<string, size_t>> lex
   MS64 xy[4] = {MS64::FromDevice(), MS64::FromDevice(), MS64::FromDevice(),
                 MS64::FromDevice()};
   auto z = MS128::FromDevice();
-  auto h = [](uint32_t x) { return (0x87ad153f * x) >> 1; };
+  auto h = [](uint32_t x) { return (0x87ad153f * x) >> lexiShift; };
   auto g = [](uint32_t x) { return x; };
   if (protect) {
     FourOne<string, kTagBits, Alpha, decltype(h)> dt(
@@ -210,7 +212,7 @@ size_t TestRecover41(const size_t kPopulation,  vector<pair<string, size_t>> lex
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int argc, char ** argv) {
-  constexpr bool protect = false;
+  constexpr bool protect = true;
   constexpr size_t universe = 1ul << 32;
   istringstream s(argv[1]);
   int f_b = 0;
@@ -218,8 +220,11 @@ int main(int argc, char ** argv) {
 
   vector<pair<string, size_t>> lexicon;
   LazyTabHash lth;
-  if (argc == 3) {
+  if (argc > 2) {
+    if (argc != 4) throw []() { string("lexi argc"); };
     if (string(argv[2]) != "dict") throw string("dict");
+    istringstream s(argv[3]);
+    s >> lexiShift;
     string word;
     while (cin >> word) {
       lexicon.push_back({word, lth(word.c_str(), word.size())});
