@@ -93,7 +93,7 @@ redo:
       // cout << "failed " << (100.0 * i / dt.data_.size() / 4) << '%' << endl;
       // // TODO: how to undo this?
       // kPopulation = 1ul << 20;
-      cout << "fill failed; retrying " << (100.0 * (i - universeBegin) / dt.Capacity())
+      cout << "fill failed; please retry " << (100.0 * (i - universeBegin) / dt.Capacity()) << " / 95.0"
            << endl;
       throw 'r';
       //dt.Clear();
@@ -212,17 +212,29 @@ size_t TestRecover41(const size_t kPopulation,  vector<pair<string, size_t>> lex
 // read strings from stdin, put them in a Rainbow, then print all keys that can be
 // recovered
 int main(int argc, char ** argv) {
+  // Alter this line to change from protected to unprotected
   constexpr bool protect = true;
   constexpr size_t universe = 1ul << 32;
+  if (argc == 1) {
+  fail:
+    cerr << "usage:\n";
+    cerr << argv[0] << " f_b\n";
+    cerr << "or\n";
+    cerr << "cat Eng_US.Freq.2.txt | cut -f 1 | tail +2 | " << argv[0] << " f_b dict R, where R is 32-r" << endl;
+    return 1;
+  }
   istringstream s(argv[1]);
   int f_b = 0;
   s >> f_b;
+  if (s.fail()) {
+    goto fail;
+  }
 
   vector<pair<string, size_t>> lexicon;
   LazyTabHash lth;
   if (argc > 2) {
-    if (argc != 4) throw []() { string("lexi argc"); };
-    if (string(argv[2]) != "dict") throw string("dict");
+    if (argc != 4) goto fail;
+    if (string(argv[2]) != "dict") goto fail;
     istringstream s(argv[3]);
     s >> lexiShift;
     string word;
@@ -259,7 +271,7 @@ int main(int argc, char ** argv) {
     effbee(15, U);    \
     effbee(16, U);    \
     default:          \
-      throw 0;        \
+      goto fail;      \
   }
 
   if (not lexicon.empty()) {
