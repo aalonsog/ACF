@@ -30,4 +30,4 @@ recovered24,positives24,fpp24,recovered411,positives411,fpp411,recovered412,posi
 
 `recovered` indicates the number of keys successfully inverted, `positives` indicates the number of keys that are *persistent* false positives, `fpp` indicates the false positive probability (as a percentage, so times 100), and `fill_count` is the number of keys originally inserted.
 The suffix `24` indicates an adaptive cuckoo filter ("ACF") with buckets of size 4 and with 2 buckets possible per key.
-The suffix `41x` indicates an ACF with buckets of size 1 and 4 buckets possible per key and x adaptivity bits in each slot.
+The suffix `41x` indicates an ACF with buckets of size 1 and 4 buckets possible per key and x fingerprint function selection bits in each slot.
