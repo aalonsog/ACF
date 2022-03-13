@@ -23,8 +23,10 @@ where wordlist is a text file containing the lexicon with words separated by whi
 
 The output is a CSV file that looks like
 
+```
 recovered24,positives24,fpp24,recovered411,positives411,fpp411,recovered412,positives412,fpp412,recovered413,positives413,fpp412,fill_count
 20598,43670,1.42918,20606,43677,1.06726,20609,43670,1.06047,20609,43670,1.06,31131
+```
 
 recovered indicates the number of keys successfully inverted, positives indicates the number of keys that are *persistent* false positives, fpp indicates the false positive rate, and fill_count is the number of keys originally inserted.
 The suffix "24" indicates an adaptive cuckoo filter ("ACF") with buckets of size 4 and with 2 buckets possible per key.
