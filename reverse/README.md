@@ -1,4 +1,5 @@
-This directory contains code that demonstrates the constructions in "On the Privacy of Adaptive Cuckoo Filters: Adaptation Will Betray You".
+This repo contains code that demonstrates the constructions and replicates the simulations reported in "On the Privacy of Adaptive Cuckoo Filters: Analysis and Protection", submitted to IEEE Transactions on Information Forensics and Security.
+
 
 To build, run "make".
 

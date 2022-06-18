@@ -1,5 +1,7 @@
 #pragma once
 
+// 2-4 adaptive cuckoo filters
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -16,6 +18,7 @@
 
 using namespace std;
 
+// Multiply-shift hashing a 32-bit integer to 64-bits
 struct MS32 {
   uint64_t m0, a0, m1, a1;
   uint64_t operator()(uint32_t x) {
@@ -25,6 +28,7 @@ struct MS32 {
   }
 };
 
+// Tabulation hashing a 64-bit integer to 64 bits
 struct MS64 {
   // unsigned __int128 m, a;
   uint64_t seed[8][256];
@@ -48,6 +52,7 @@ struct MS64 {
   }
 };
 
+// Tabulation hashing a 64-bit integer to 128 bits
 struct MS128 {
   MS64 p[2];
   static MS128 FromDevice() {
@@ -64,6 +69,7 @@ struct MS128 {
   }
 };
 
+// Tabulation hashing strings to 64 bits
 struct LazyTabHash {
   vector<array<uint64_t, 256>> seed;
   uint64_t operator()(const char* x, size_t n) {
@@ -83,7 +89,7 @@ struct LazyTabHash {
   }
 };
 
-
+// 2-4 adaptive cuckoo filter
 template<typename Z, int W, typename H>
 struct DebugTable {
   static_assert(W <= 32, "W <= 32");

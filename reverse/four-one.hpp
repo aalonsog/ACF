@@ -8,6 +8,7 @@ using namespace std;
 
 #include "debug-table.hpp"
 
+// 4-1 adaptive cuckoo filters
 template<typename Z, int W, int S, typename H>
 struct FourOne {
   struct Slot {

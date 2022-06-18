@@ -13,6 +13,8 @@
 
 using namespace std;
 
+// RainbowFourOne is a table structure to reverse engineer the keys inserted into a 4-1
+// adaptive cuckoo filter.
 template<typename T, int W, int Alpha>
 struct RainbowFourOne {
   unordered_map<unsigned __int128, unordered_map<uint64_t, uint64_t>> prints_to_code_to_index_;
