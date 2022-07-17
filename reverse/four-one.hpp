@@ -26,6 +26,26 @@ struct FourOne {
 
   size_t Capacity() const { return data_[0].size() * 4; }
 
+  size_t AdaptedCount() const {
+    size_t result = 0;
+    for (int i = 0; i < 4; ++i) {
+      for (const auto& slot : data_[i]) {
+        result += (slot.alpha != 0);
+      }
+    }
+    return result;
+  }
+
+  size_t Count() const {
+    size_t result = 0;
+    for (int i = 0; i < 4; ++i) {
+      for (const auto& slot : data_[i]) {
+        result += slot.full;
+      }
+    }
+    return result;
+  }
+
   FourOne(H h, size_t bucket_count, const MS64 hash_makers[4], MS128 print_maker)
       : data_{vector<Slot>{bucket_count}, vector<Slot>{bucket_count},
               vector<Slot>{bucket_count}, vector<Slot>{bucket_count}},
