@@ -143,13 +143,11 @@ int main(int argc, char** argv) {
     }
 
     // print the estimate
-    cout << b * (1 << f) *
-                log(1.0 / (1.0 - 1.0 * filter.AdaptedCount() / filter.Count()));
+    cout << 1.0 * filter.AdaptedCount() / filter.Count();
     cout << "\t" << false_positives.size() << endl;
 
     // save the estimate
-    myfile << b * (1 << f) *
-                log(1.0 / (1.0 - 1.0 * filter.AdaptedCount() / filter.Count()));
+    myfile << 1.0 * filter.AdaptedCount() / filter.Count();
     myfile << "\t" << false_positives.size() << endl;
 
   }
