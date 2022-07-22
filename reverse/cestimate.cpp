@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   // one quarter the size of the filter
   size_t b;
   // the number of fingerprint bits
-  constexpr int f = 15;
+  constexpr int f = 7;
   //int f = atoi(argv[4]);
   // the percent occupancy of the filter, expressed as a number between 0 and 100
   double o;
