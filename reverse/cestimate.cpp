@@ -60,8 +60,8 @@ int main() {
     }
 
     // print the estimate
-    cout << b * (1 << 15) *
-                log(1.0 / (1.0 - 1.0 * filter.AdaptedCount() / filter.Count()));
+    cout << b * (1 << f) *
+                log(1.0 / sqrt(1.0 - 2.0 * filter.AdaptedCount() / filter.Count()));
     cout << "\t" << false_positives.size() << endl;
   }
 }
