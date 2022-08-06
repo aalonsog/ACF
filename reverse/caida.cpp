@@ -100,10 +100,9 @@ struct LineHasher {
   }
 };
 
-int main(int argc, char ** argv) {
-  assert (2 == argc);
+int main(int argc, char** argv) {
+  assert(2 == argc);
   size_t b = 1024;
-  constexpr int f = 9;
 
   for (int i = 0; i < 100; ++i) {
     FILE* file = fopen(argv[1], "r");
@@ -111,18 +110,29 @@ int main(int argc, char ** argv) {
                     MS64::FromDevice()};
 
     auto id = [](uint64_t x) { return x; };
-    FourOne<Line, f, 1, decltype(id)> acf(id, b, ms64, MS128::FromDevice());
+    FourOne<Line, 9, 1, decltype(id)> acf09(id, b, ms64, MS128::FromDevice());
+    FourOne<Line, 10, 1, decltype(id)> acf10(id, b, ms64, MS128::FromDevice());
+    FourOne<Line, 11, 1, decltype(id)> acf11(id, b, ms64, MS128::FromDevice());
+    FourOne<Line, 12, 1, decltype(id)> acf12(id, b, ms64, MS128::FromDevice());
+    FourOne<Line, 13, 1, decltype(id)> acf13(id, b, ms64, MS128::FromDevice());
     LineHasher lh = LineHasher::FromDevice();
 
     while (not feof(file)) {
       Line l{file};
       auto h = lh(l);
-      auto found = acf.AdaptiveFind(l, h);
-      if (found != decltype(acf)::TruePositive) {
-        // cout << l << endl;
-        acf.Insert(l, h);
-        if (acf.Count() >= acf.Capacity() * 0.95) break;
-      }
+#define INSERT(ACF)                                    \
+  {                                                    \
+    const auto found = ACF.AdaptiveFind(l, h);         \
+    if (found != decltype(ACF)::TruePositive) {        \
+      ACF.Insert(l, h);                                \
+      if (ACF.Count() >= ACF.Capacity() * 0.95) break; \
+    }                                                  \
+  }
+      INSERT(acf09);
+      INSERT(acf10);
+      INSERT(acf11);
+      INSERT(acf12);
+      INSERT(acf13);
     }
     rewind(file);
     size_t lines_seen = 0;
@@ -130,7 +140,12 @@ int main(int argc, char ** argv) {
     unordered_set<Line, LineHasher> exact2(1024, lh);
     while (not feof(file)) {
       Line l{file};
-      acf.AdaptiveFind(l, lh(l));
+      const auto h = lh(l);
+      acf09.AdaptiveFind(l, h);
+      acf10.AdaptiveFind(l, h);
+      acf11.AdaptiveFind(l, h);
+      acf12.AdaptiveFind(l, h);
+      acf13.AdaptiveFind(l, h);
       ++lines_seen;
       // exact.Insert(l);
       if (0 == i) exact2.insert(l);
@@ -140,9 +155,13 @@ int main(int argc, char ** argv) {
         //      << endl;
       }
     }
-    cout << acf.AdaptedCount();
+    cout << acf09.AdaptedCount() << ' ';
+    cout << acf10.AdaptedCount() << ' ';
+    cout << acf11.AdaptedCount() << ' ';
+    cout << acf12.AdaptedCount() << ' ';
+    cout << acf13.AdaptedCount() << ' ';
     // cout << exact.Size();
-    if (0 == i) cout << ' ' << exact2.size() << ' ' << lines_seen;
+    if (0 == i) cout << exact2.size() << ' ' << lines_seen;
     cout << endl;
   }
 }
