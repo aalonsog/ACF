@@ -14,9 +14,9 @@ using namespace std;
 void PrintUsage() {
   printf("Usage:\n");
   printf(" ***\n");
-  printf(" -c the number of distinct false positives\n");
-  printf(" -n one quarter the size of the filter\n");
-  printf(" -b one quarter the size of the filter\n");
+  printf(" -c the number of distinct negatives queried on the filter\n");
+  printf(" -n number of repetitions of elements\n");
+  printf(" -b table size for the filter\n");
   printf(" -o the percent occupancy of the filter, expressed as a number between 0 and 100\n");
   printf(" -r the number of runs\n");
   printf(" -h print usage\n");
@@ -28,12 +28,12 @@ int main(int argc, char** argv) {
   // ./cestimate.exe -c 256 -n 25 -b 4096 -o 95 -r 100
 
 
-  // the number of distinct false positives
+  // the number of distinct negatives queried on the filter
   unsigned long ul;
   size_t C;
-  // the number of queries of these false positives
+  // number of repetitions of elements
   size_t N;
-  // one quarter the size of the filter
+  // table size for the filter
   size_t b;
   // the number of fingerprint bits
   constexpr int f = 7;
@@ -91,9 +91,9 @@ int main(int argc, char** argv) {
     argv = argv + flag;
   }
   
-  cout << "Number of distinct false positives: " << C << "\n";
-  cout << "Number of queries of these false positives: " << N << "\n";
-  cout << "One quarter the size of the filter: " << b << "\n";
+  cout << "Number of distinct negatives queried on the filter: " << C << "\n";
+  cout << "Number of repetitions of elements: " << N << "\n";
+  cout << "Table size for the filter: " << b << "\n";
   cout << "Number of fingerprint bits: " << f << "\n";
   cout << "Percent occupancy of the filter: " << o << "\n";
   cout << "Number of runs: " << r << "\n";
