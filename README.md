@@ -21,7 +21,7 @@ $ make
 Use the following command to get help:
 
 ```
-$ ./cestimate_7.exe -h
+$ ./cestimate.exe -h
 
 
 Usage:
@@ -36,6 +36,8 @@ Usage:
 Use the following command to run de simulator with parameters:
 
 ```
-$ ./cestimate_7.exe -c 256 -n 25 -b 4096 -o 95 -r 100
+$ ./cestimate.exe -c 256 -n 25 -b 4096 -o 95 -r 100
 ```
+
+Number of fingerprint bits can be modified in the [source code](https://github.com/aalonsog/ACF/blob/cestimate/reverse/cestimate.cpp#L39). You need to compile again the code to apply the change. On the other hand, three diefferent executables with the typical fingerprint values (7, 11 and 15) are provided.
     
