@@ -11,5 +11,5 @@ cestimate.exe: cestimate.cpp four-one.hpp Makefile
 caida.exe: caida.cpp four-one.hpp caida-util.hpp Makefile
 	$(CXX) caida.cpp -O3 -fno-strict-aliasing -ggdb3 -W -Wall -Wextra -o caida.exe
 
-hll-performance-comparison.exe: hll-performance-comparison.cpp four-one-separate.hpp debug-table.hpp local-hll.hpp bit-array.hpp caida-util.hpp Makefile
+hll-performance-comparison.exe: hll-performance-comparison.cpp four-one-separate.hpp debug-table.hpp hash-table.hpp caida-util.hpp Makefile
 	$(CXX) hll-performance-comparison.cpp -I../datasketches-cpp/common/include -I../datasketches-cpp/hll/include -O3 -ggdb3 -W -Wall -Wextra -o hll-performance-comparison.exe
