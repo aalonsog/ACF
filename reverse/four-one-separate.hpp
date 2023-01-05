@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <cstdio>
 
 using namespace std;
 
@@ -75,7 +76,7 @@ struct FourOneACF {
       if (fp == data_[i][hash].fingerprint) {
         result = FalsePositive;
         data_[i][hash].alpha += 1;
-        data_[i][hash].alpha = data_[i][hash].alpha & ((1 << S) - 1);
+        // data_[i][hash].alpha = data_[i][hash].alpha & ((1 << S) - 1);
         data_[i][hash].fingerprint =
             print_maker_(h_(back_[i][hash])) >> (data_[i][hash].alpha * W);
         if (data_[i][hash].fingerprint == 0) data_[i][hash].fingerprint = 1;
@@ -88,12 +89,12 @@ struct FourOneACF {
     uint64_t count = 0, occupancy = 0;
     for (int i = 0; i < 4; ++i) {
       for (size_t j = 0; j < data_[i].size(); ++j) {
-        count += (data_[i][j].alpha ? 1 : 0);
+        count += data_[i][j].alpha;
         occupancy += (data_[i][j].fingerprint != 0);
       }
     }
     double p1hat = count / 1.0 / occupancy;
-    // cerr << p1hat << ' ' << log(1.0 - 2 * p1hat) << endl;
+    printf("p1hat: %f\n", p1hat);
     return {(data_[0].size() << (W - 1)) * -log(1.0 - 2 * p1hat), occupancy};
   }
 
@@ -101,7 +102,7 @@ struct FourOneACF {
     auto phi = [](double x) { return sqrt(exp(4 * x) - 1) / (2 * x); };
     auto [C, occupancy] = C_occupancy;
     auto b = data_[0].size();
-    auto o = occupancy / 1.0 / b;
+    auto o = occupancy / 1.0 / b / 4;
     auto d = 4;
     auto f = W;
     return phi(C / (b * (1ul << f))) / sqrt(b * d * o);
