@@ -33,7 +33,15 @@ int main(int argc, char ** argv) {
     //HLL<5> hll(1 << 10);
     datasketches::hll_sketch hll{10, datasketches::target_hll_type::HLL_6};
 
-    auto LineMatch = [](const Line& l) {return l.ip_from_[0] >> 1 == 0;};
+    // sj12:
+    // auto LineMatch = [](const Line& l) {return l.ip_from_[0] == 135 && l.ip_from_[1] == 224;};
+    // chicago:
+    // auto LineMatch = [](const Line& l) {return l.ip_from_[0]  >> 1 == 0; };
+    // mawi:
+    auto LineMatch = [](const Line& l) {
+      return l.ip_from_[0] == 104 && l.ip_from_[1] == 136 && l.ip_from_[2] == 138 &&
+        l.ip_from_[3] == 182 && l.ip_to_[0] == 149 && l.ip_to_[1] == 137 && l.ip_to_[2] >> 3 == 0;
+    };
     auto FillAcf = [&trace, &LineMatch, &lh, b, &ms64]() {
       FourOneACF<Line, 14, 1, LineHasher> acf15(lh, b, ms64, MS128::FromDevice());
       size_t count = 0;
