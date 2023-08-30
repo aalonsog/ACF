@@ -1,6 +1,6 @@
 # Introduction
 
-This repository contains code for simulating the Adaptive Cuckoo Filter. It demonstrates the constructions and replicates the simulations reported in "Make your Cuckoo Filter Adaptive and Get Cardinality Estimation for Free", submitted to [IEEE/ACM Transactions on Networking](https://sites.google.com/view/ieee-acm-ton).
+This repository contains code for simulating the Adaptive Cuckoo Filter. It demonstrates the constructions and replicates the simulations reported in "Cardinality Estimation Adaptive Cuckoo Filters(CE-ACF): Approximate Membership Check and Distinct Query Count for High-Speed Network Monitoring", in IEEE/ACM Transactions on Networking (paper available [here](https://doi.ieeecomputersociety.org/10.1109/TNET.2023.3302306)).
 
 # Building
 
